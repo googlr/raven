@@ -5,7 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"strings"
+	// "strings"
 	"time"
 )
 
@@ -14,18 +14,55 @@ type PageVariables struct {
 	Time string
 }
 
+type User struct {
+  UserId int
+	UserName  string
+	Password  string
+	Following []int
+}
+
 type Message struct {
-	Sender  User.UserName
+	SenderId  int
 	Content string
 }
 
-type User struct {
-	UserName  string
-	Password  string
-	Following []User
-}
 
 func main() {
+
+  //create some users
+
+  //
+  userList := [] User {
+    { UserId: 1, 
+    UserName:"Ned Stark", 
+    Password:"qwerty", 
+    Following {2}},
+  { UserId: 2, 
+    UserName:"Robert Baratheon", 
+    Password:"qwerty", 
+    Following {1}},
+  { UserId: 3, 
+    UserName:"Jaime Lannister", 
+    Password:"qwerty", 
+    Following {1,2,7}},
+  {UserId: 4, 
+    UserName:"Jon Snow", 
+    Password:"qwerty", 
+    Following {1,6,7}},
+  {UserId: 5, 
+    UserName:"Tyrion Lannister", 
+    Password:"qwerty", 
+    Following {1}},
+  {UserId: 6, 
+    UserName:"Daenerys Targaryen", 
+    Password:"qwerty", 
+    Following {4,7}},
+  {UserId: 7, 
+    UserName:"Cersei Lannister", 
+    Password:"qwerty", 
+    Following {3,6}}
+  }
+
 	http.HandleFunc("/", HomePage)
 	// log.Fatal(http.ListenAndServe(":8080", nil))
 
@@ -64,5 +101,20 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		// logic part of log in
 		fmt.Println("username:", r.Form["username"])
 		fmt.Println("password:", r.Form["password"])
+      userName := r.Form["username"]
+      password := r.Form["passward"]
+
+      //validate user
+      for _, v := range userList {
+        if v["UserName"] === userName && v["Password"] === password {
+          //login success
+          fmt.Fprintf(w, "Hello, %s. Welcom back.\n", userName)
+        }
+
+      }
+
+      //login failed
+      fmt.Fprintf(w, "Sorry, %s. Join us first.\n", userName)
+
 	}
 }

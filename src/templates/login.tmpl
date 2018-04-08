@@ -8,14 +8,11 @@
 
 <body>
     <h1>Raven</h1>
-    <h2>{{.PageTitle}}<h2>
+    <h2>Welcome, {{.UserName}}<h2>
+    <p>Here are your friends:</p>
 <ul>
-    {{range .Todos}}
-        {{if .Done}}
-            <li class="done">{{.Title}}</li>
-        {{else}}
-            <li>{{.Title}}</li>
-        {{end}}
+    {{range .Following}}
+        <li>{{.FollowingId}}</li>
     {{end}}
 </ul>
 </body>
