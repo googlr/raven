@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title></title>
+</head>
+
+<body>
+    <h1>Raven<h1>
+
+    <h2>Welcome, {{.UserName}}</h2>
+    <div>
+        <h2>Profile</h2>
+        <p>UserName: {{.UserName}}</p>
+        <p>UserId: {{.UserId}}</p>
+        <div>
+            <p>"Grand Maester Pycelle... send a raven to Casterly Rock."</p>
+            <form action="/sendMessage" method="post">
+                <input type="text" name="message" width="500" height="200" placeholder="Write your message here." maxlength="140">
+                <input type="submit" value="Send">
+            </form>
+        </div>
+        <p>Messages recieved:</p>
+        <ul>
+            {{range .Following}}
+            <li>Messages</li>
+            {{end}}
+        </ul>
+    </div>
+</body>
+
+</html>

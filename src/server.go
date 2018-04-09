@@ -64,7 +64,7 @@ func main() {
 
 	//
 
-	http.HandleFunc("/", HomePage)
+	http.HandleFunc("/", Index)
 	// log.Fatal(http.ListenAndServe(":8080", nil))
 
 	//Login
@@ -73,13 +73,16 @@ func main() {
 	//SignUp
 	http.HandleFunc("/signup", SignUp)
 
+	//sendMessage
+	http.HandleFunc("/sendMessage", sendMessage)
+
 	err := http.ListenAndServe(":8080", nil) // setting listening port
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }
 
-func HomePage(w http.ResponseWriter, r *http.Request) {
+func Index(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()              // find the time right now
 	HomePageVars := PageVariables{ //store the date and time in a struct
@@ -131,8 +134,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 				// t.Execute(w, data)
 
-				tmpl := template.Must(template.ParseFiles("templates/layout.html"))
-
+				// tmpl := template.Must(template.ParseFiles("templates/homepage.html"))
+				tmpl, err := template.ParseFiles("templates/homepage.html") //parse the html file homepage.html
+				if err != nil {                                             // if there is an error
+					log.Print("template parsing error: ", err) // log it
+				}
 				// data := TodoPageData{
 				// 	PageTitle: "My TODO list",
 				// 	Todos: []Todo{
@@ -198,10 +204,26 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if loginStatus == true {
-			tmpl := template.Must(template.ParseFiles("templates/layout.html"))
+			tmpl := template.Must(template.ParseFiles("templates/homepage.html"))
 			tmpl.Execute(w, newUserProfile)
 			// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
 		}
+
+	}
+}
+
+func sendMessage(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Session: User is Sending Message.")
+	fmt.Println("method:", r.Method) //get request method
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("login.gtpl")
+		t.Execute(w, nil)
+	} else {
+		r.ParseForm()
+		// logic part of log in
+		msg := r.Form["message"]
+		// password := r.Form["passward"]
+		fmt.Fprintf(w, "Message <div> <p>%s</p> </div> sent.\n", msg)
 
 	}
 }
