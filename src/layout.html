@@ -7,17 +7,18 @@
 
 <body>
     <h1>Raven<h1>
-    <div>
-    	<h2>Profile</h2>
-    	<p>UserName: {{.UserName}}</p>
-    	<p>UserId: {{.UserId}}</p>
-    	<ul>
-    		{{range .Following}}
-            	<li>Friends</li>
-    		{{end}}
-		</ul>
-    	
-    </div>
 
+    <h2>Welcome, {{.UserName}}</h2>
+	<div>
+        <h2>Profile</h2>
+        <p>UserName: {{.UserName}}</p>
+        <p>UserId: {{.UserId}}</p>
+        <ul>
+            {{range .Following}}
+            <li>Friends</li>
+            {{end}}
+        </ul>
+    </div>
 </body>
+
 </html>

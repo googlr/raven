@@ -58,16 +58,6 @@ var userList = []User{
 		Following: []int{3, 6}},
 }
 
-type Todo struct {
-	Title string
-	Done  bool
-}
-
-type TodoPageData struct {
-	PageTitle string
-	Todos     []Todo
-}
-
 func main() {
 
 	//create some users
@@ -77,7 +67,12 @@ func main() {
 	http.HandleFunc("/", HomePage)
 	// log.Fatal(http.ListenAndServe(":8080", nil))
 
+	//Login
 	http.HandleFunc("/login", Login)
+
+	//SignUp
+	http.HandleFunc("/signup", SignUp)
+
 	err := http.ListenAndServe(":8080", nil) // setting listening port
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
@@ -103,6 +98,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Session: User is Logging in.")
 	fmt.Println("method:", r.Method) //get request method
 	if r.Method == "GET" {
 		t, _ := template.ParseFiles("login.gtpl")
@@ -135,7 +131,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 				// t.Execute(w, data)
 
-				tmpl := template.Must(template.ParseFiles("layout.html"))
+				tmpl := template.Must(template.ParseFiles("templates/layout.html"))
 
 				// data := TodoPageData{
 				// 	PageTitle: "My TODO list",
@@ -146,21 +142,65 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				// 	},
 				// }
 
-				data := User{
-					UserId:    4,
-					UserName:  "Jon Snow",
-					Password:  "qwerty",
-					Following: []int{1, 6, 7},
-				}
+				// data := User{
+				// 	UserId:    4,
+				// 	UserName:  "Jon Snow",
+				// 	Password:  "qwerty",
+				// 	Following: []int{1, 6, 7},
+				// }
 
-				tmpl.Execute(w, data)
+				tmpl.Execute(w, v)
 			}
 
 		}
 
 		//login failed
 		if loginStatus == false {
-			fmt.Fprintf(w, "Sorry, %s. Join us first.\n", userName[0])
+			tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
+			tmpl.Execute(w, User{UserName: userName[0]})
+			// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
+		}
+
+	}
+}
+
+func SignUp(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Session: User is Signing Up.")
+	fmt.Println("method:", r.Method) //get request method
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("login.gtpl")
+		t.Execute(w, nil)
+	} else {
+		r.ParseForm()
+		// logic part of log in
+		userName := r.Form["username"]
+		// password := r.Form["passward"]
+
+		//validate username
+		loginStatus := true
+		for _, v := range userList {
+			if v.UserName == userName[0] {
+				// Duplicate username
+				loginStatus = false
+
+				tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
+				tmpl.Execute(w, User{UserName: userName[0]})
+			}
+
+		}
+
+		//login success
+		newUserProfile := User{
+			UserId:    len(userList) + 1,
+			UserName:  userName[0],
+			Password:  "qwerty",
+			Following: []int{},
+		}
+
+		if loginStatus == true {
+			tmpl := template.Must(template.ParseFiles("templates/layout.html"))
+			tmpl.Execute(w, newUserProfile)
+			// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
 		}
 
 	}
