@@ -58,6 +58,16 @@ var userList = []User{
 		Following: []int{3, 6}},
 }
 
+type Todo struct {
+	Title string
+	Done  bool
+}
+
+type TodoPageData struct {
+	PageTitle string
+	Todos     []Todo
+}
+
 func main() {
 
 	//create some users
@@ -110,21 +120,48 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		// fmt.Println("len: ", len(password))
 
 		//validate user
+		loginStatus := false
 		for _, v := range userList {
-			// fmt.Println("User: ", v.UserName)
+			fmt.Println("User: ", v.UserName)
 			// fmt.Println("User: ", v.Password)
 			// fmt.Println("Log: ", userName[0])
 			// fmt.Println("Log: ", password[0])
 			if v.UserName == userName[0] {
 				// && v.Password == password[0]
 				// 	//login success
-				fmt.Fprintf(w, "Hello, %s. Welcom back.\n", userName[0]) //, password[0])
+				loginStatus = true
+				// fmt.Fprintf(w, "Hello, %s. Welcom back.\n", userName[0]) //, password[0])
+				// t, _ := template.ParseFiles("login.gtpl")
+
+				// t.Execute(w, data)
+
+				tmpl := template.Must(template.ParseFiles("layout.html"))
+
+				// data := TodoPageData{
+				// 	PageTitle: "My TODO list",
+				// 	Todos: []Todo{
+				// 		{Title: "Task 1", Done: false},
+				// 		{Title: "Task 2", Done: true},
+				// 		{Title: "Task 3", Done: true},
+				// 	},
+				// }
+
+				data := User{
+					UserId:    4,
+					UserName:  "Jon Snow",
+					Password:  "qwerty",
+					Following: []int{1, 6, 7},
+				}
+
+				tmpl.Execute(w, data)
 			}
 
 		}
 
 		//login failed
-		fmt.Fprintf(w, "Sorry, %s. Join us first.\n", userName[0])
+		if loginStatus == false {
+			fmt.Fprintf(w, "Sorry, %s. Join us first.\n", userName[0])
+		}
 
 	}
 }
