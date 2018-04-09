@@ -67,7 +67,8 @@ var userList = []User{
 
 func main() {
 
-	//create some users
+	//
+	http.Handle("resources/", http.StripPrefix("resources/", http.FileServer(http.Dir("/css"))))
 
 	//
 
