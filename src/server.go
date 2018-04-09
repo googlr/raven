@@ -6,8 +6,15 @@ import (
 	"log"
 	"net/http"
 	// "strings"
+	"github.com/gorilla/sessions"
 	"reflect"
 	"time"
+)
+
+var (
+	// key must be 16, 24 or 32 bytes long (AES-128, AES-192 or AES-256)
+	key   = []byte("super-secret-key")
+	store = sessions.NewCookieStore(key)
 )
 
 type PageVariables struct {
@@ -68,13 +75,16 @@ func main() {
 	// log.Fatal(http.ListenAndServe(":8080", nil))
 
 	//Login
-	http.HandleFunc("/login", Login)
+	http.HandleFunc("/login", login)
 
 	//SignUp
-	http.HandleFunc("/signup", SignUp)
+	http.HandleFunc("/signup", signUp)
 
 	//sendMessage
 	http.HandleFunc("/sendMessage", sendMessage)
+
+	//logout
+	http.HandleFunc("/logout", logout)
 
 	err := http.ListenAndServe(":8080", nil) // setting listening port
 	if err != nil {
@@ -100,7 +110,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Login(w http.ResponseWriter, r *http.Request) {
+func login(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Session: User is Logging in.")
 	fmt.Println("method:", r.Method) //get request method
 	if r.Method == "GET" {
@@ -118,7 +128,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		// fmt.Println("len: ", len(userName))
 		// fmt.Println("len: ", len(password))
 
-		//validate user
+		session, _ := store.Get(r, "cookie-name")
+
+		// Authentication goes here
 		loginStatus := false
 		for _, v := range userList {
 			fmt.Println("User: ", v.UserName)
@@ -129,6 +141,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				// && v.Password == password[0]
 				// 	//login success
 				loginStatus = true
+				// Set user as authenticated
+				session.Values["authenticated"] = true
+				session.Save(r, w)
+
 				// fmt.Fprintf(w, "Hello, %s. Welcom back.\n", userName[0]) //, password[0])
 				// t, _ := template.ParseFiles("login.gtpl")
 
@@ -170,7 +186,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SignUp(w http.ResponseWriter, r *http.Request) {
+func signUp(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Session: User is Signing Up.")
 	fmt.Println("method:", r.Method) //get request method
 	if r.Method == "GET" {
@@ -204,6 +220,11 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if loginStatus == true {
+			session, _ := store.Get(r, "cookie-name")
+			// Set user as authenticated
+			session.Values["authenticated"] = true
+			session.Save(r, w)
+
 			tmpl := template.Must(template.ParseFiles("templates/homepage.html"))
 			tmpl.Execute(w, newUserProfile)
 			// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
@@ -213,6 +234,14 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendMessage(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "cookie-name")
+
+	// Check if user is authenticated
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	fmt.Println("Session: User is Sending Message.")
 	fmt.Println("method:", r.Method) //get request method
 	if r.Method == "GET" {
@@ -226,4 +255,12 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Message <div> <p>%s</p> </div> sent.\n", msg)
 
 	}
+}
+
+func logout(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "cookie-name")
+
+	// Revoke users authentication
+	session.Values["authenticated"] = false
+	session.Save(r, w)
 }

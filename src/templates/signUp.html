@@ -15,7 +15,7 @@
     	<h2>Welcome, {{.UserName}}. Sign up below.</h2>
         <form action="/signup" method="post">
             Username:
-            <input type="text" name="username" value="Jon Snow"> Password:
+            <input type="text" name="username" value="{{.UserName}}"> Password:
             <input type="password" name="password" value="qwerty">
             <input type="submit" value="SignUp">
         </form>
