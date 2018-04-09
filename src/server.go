@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	// "strings"
+	"reflect"
 	"time"
 )
 
@@ -15,53 +16,53 @@ type PageVariables struct {
 }
 
 type User struct {
-  UserId int
+	UserId    int
 	UserName  string
 	Password  string
 	Following []int
 }
 
 type Message struct {
-	SenderId  int
-	Content string
+	SenderId int
+	Content  string
 }
 
+var userList = []User{
+	{UserId: 1,
+		UserName:  "Ned Stark",
+		Password:  "qwerty",
+		Following: []int{2}},
+	{UserId: 2,
+		UserName:  "Robert Baratheon",
+		Password:  "qwerty",
+		Following: []int{1}},
+	{UserId: 3,
+		UserName:  "Jaime Lannister",
+		Password:  "qwerty",
+		Following: []int{1, 2, 7}},
+	{UserId: 4,
+		UserName:  "Jon Snow",
+		Password:  "qwerty",
+		Following: []int{1, 6, 7}},
+	{UserId: 5,
+		UserName:  "Tyrion Lannister",
+		Password:  "qwerty",
+		Following: []int{1}},
+	{UserId: 6,
+		UserName:  "Daenerys Targaryen",
+		Password:  "qwerty",
+		Following: []int{4, 7}},
+	{UserId: 7,
+		UserName:  "Cersei Lannister",
+		Password:  "qwerty",
+		Following: []int{3, 6}},
+}
 
 func main() {
 
-  //create some users
+	//create some users
 
-  //
-  userList := [] User {
-    { UserId: 1, 
-    UserName:"Ned Stark", 
-    Password:"qwerty", 
-    Following {2}},
-  { UserId: 2, 
-    UserName:"Robert Baratheon", 
-    Password:"qwerty", 
-    Following {1}},
-  { UserId: 3, 
-    UserName:"Jaime Lannister", 
-    Password:"qwerty", 
-    Following {1,2,7}},
-  {UserId: 4, 
-    UserName:"Jon Snow", 
-    Password:"qwerty", 
-    Following {1,6,7}},
-  {UserId: 5, 
-    UserName:"Tyrion Lannister", 
-    Password:"qwerty", 
-    Following {1}},
-  {UserId: 6, 
-    UserName:"Daenerys Targaryen", 
-    Password:"qwerty", 
-    Following {4,7}},
-  {UserId: 7, 
-    UserName:"Cersei Lannister", 
-    Password:"qwerty", 
-    Following {3,6}}
-  }
+	//
 
 	http.HandleFunc("/", HomePage)
 	// log.Fatal(http.ListenAndServe(":8080", nil))
@@ -101,20 +102,29 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		// logic part of log in
 		fmt.Println("username:", r.Form["username"])
 		fmt.Println("password:", r.Form["password"])
-      userName := r.Form["username"]
-      password := r.Form["passward"]
+		userName := r.Form["username"]
+		password := r.Form["passward"]
+		fmt.Println(reflect.TypeOf(userName))
+		fmt.Println(reflect.TypeOf(password))
+		// fmt.Println("len: ", len(userName))
+		// fmt.Println("len: ", len(password))
 
-      //validate user
-      for _, v := range userList {
-        if v["UserName"] === userName && v["Password"] === password {
-          //login success
-          fmt.Fprintf(w, "Hello, %s. Welcom back.\n", userName)
-        }
+		//validate user
+		for _, v := range userList {
+			// fmt.Println("User: ", v.UserName)
+			// fmt.Println("User: ", v.Password)
+			// fmt.Println("Log: ", userName[0])
+			// fmt.Println("Log: ", password[0])
+			if v.UserName == userName[0] {
+				// && v.Password == password[0]
+				// 	//login success
+				fmt.Fprintf(w, "Hello, %s. Welcom back.\n", userName[0]) //, password[0])
+			}
 
-      }
+		}
 
-      //login failed
-      fmt.Fprintf(w, "Sorry, %s. Join us first.\n", userName)
+		//login failed
+		fmt.Fprintf(w, "Sorry, %s. Join us first.\n", userName[0])
 
 	}
 }
