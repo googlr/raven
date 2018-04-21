@@ -1,5 +1,5 @@
 # raven
-**Raven** (just like the raven messengers on Westeros in Game of Throne), which is a distributed news and social networking service written in Golang. The front-end is implemented with HTML and Go, while the backend, known as [citadel](https://github.com/googlr/raven/tree/master/citadel) are multiple servers that replicate changes over the cluster to maintain consistency and availability in unreliable networks.
+**Raven** (just like the raven messengers on Westeros in Game of Throne), which is a distributed news and social networking service written in Golang. The front-end is implemented with HTML and Go, while the backend, known as [citadel](https://github.com/googlr/raven/tree/master/citadel), are multiple servers that replicate changes over the cluster to maintain consistency and availability in unreliable networks.
 
 ## Team 
   - Captain: TBD
