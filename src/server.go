@@ -7,6 +7,8 @@ import (
 	"net/http"
 	// "strings"
 	"github.com/gorilla/sessions"
+	"net/rpc"
+	"os"
 	"reflect"
 	"time"
 )
@@ -15,6 +17,9 @@ var (
 	// key must be 16, 24 or 32 bytes long (AES-128, AES-192 or AES-256)
 	key   = []byte("super-secret-key")
 	store = sessions.NewCookieStore(key)
+
+	// back end server address
+	serverAddress string = "localhost"
 )
 
 type PageVariables struct {
@@ -65,13 +70,34 @@ var userList = []User{
 		Following: []int{3, 6}},
 }
 
+type Args struct {
+	A, B int
+}
+
+type Quotient struct {
+	Quo, Rem int
+}
+
+type LoginArgs struct {
+	userName, password string
+}
+
+type LoginReply struct {
+	status      bool
+	userProfile *User
+}
+
 func main() {
+	if len(os.Args) != 2 {
+		fmt.Println("Usage: ", os.Args[0], "server")
+		os.Exit(1)
+	}
+	serverAddress = os.Args[1]
 
 	//
 	http.Handle("/resources/css/", http.StripPrefix("/resources/css/", http.FileServer(http.Dir("resources/css"))))
 
-	//
-
+	//root
 	http.HandleFunc("/", Index)
 	// log.Fatal(http.ListenAndServe(":8080", nil))
 
@@ -132,53 +158,40 @@ func login(w http.ResponseWriter, r *http.Request) {
 		session, _ := store.Get(r, "cookie-name")
 
 		// Authentication goes here
-		loginStatus := false
-		for _, v := range userList {
-			fmt.Println("User: ", v.UserName)
-			// fmt.Println("User: ", v.Password)
-			// fmt.Println("Log: ", userName[0])
-			// fmt.Println("Log: ", password[0])
-			if v.UserName == userName[0] {
-				// && v.Password == password[0]
-				// 	//login success
-				loginStatus = true
-				// Set user as authenticated
-				session.Values["authenticated"] = true
-				session.Save(r, w)
+		client, err := rpc.DialHTTP("tcp", serverAddress+":1234")
+		if err != nil {
+			log.Fatal("dialing:", err)
+		}
+		// Synchronous call
+		args := Args{17, 8}
+		var reply int
+		err = client.Call("Arith.Multiply", args, &reply)
+		if err != nil {
+			log.Fatal("arith error:", err)
+		}
+		fmt.Printf("Arith: %d*%d=%d\n", args.A, args.B, reply)
 
-				// fmt.Fprintf(w, "Hello, %s. Welcom back.\n", userName[0]) //, password[0])
-				// t, _ := template.ParseFiles("login.gtpl")
+		// RPC call for validation
+		loginArgs := LoginArgs{userName[0], "qwerty"}
+		var loginReply LoginReply
+		err = client.Call("UserLoginValidation", loginArgs, &loginReply)
+		if err != nil {
+			log.Fatal("arith error:", err)
+		}
+		fmt.Printf("User: %s, LoginStatus: %t\n", loginArgs.userName, loginReply.status)
 
-				// t.Execute(w, data)
+		if loginReply.status == true {
+			// Set user as authenticated
+			session.Values["authenticated"] = true
+			session.Save(r, w)
 
-				// tmpl := template.Must(template.ParseFiles("templates/homepage.html"))
-				tmpl, err := template.ParseFiles("templates/homepage.html") //parse the html file homepage.html
-				if err != nil {                                             // if there is an error
-					log.Print("template parsing error: ", err) // log it
-				}
-				// data := TodoPageData{
-				// 	PageTitle: "My TODO list",
-				// 	Todos: []Todo{
-				// 		{Title: "Task 1", Done: false},
-				// 		{Title: "Task 2", Done: true},
-				// 		{Title: "Task 3", Done: true},
-				// 	},
-				// }
-
-				// data := User{
-				// 	UserId:    4,
-				// 	UserName:  "Jon Snow",
-				// 	Password:  "qwerty",
-				// 	Following: []int{1, 6, 7},
-				// }
-
-				tmpl.Execute(w, v)
+			tmpl, err := template.ParseFiles("templates/homepage.html") //parse the html file homepage.html
+			if err != nil {                                             // if there is an error
+				log.Print("template parsing error: ", err) // log it
 			}
 
-		}
-
-		//login failed
-		if loginStatus == false {
+			tmpl.Execute(w, *(loginReply.userProfile))
+		} else {
 			tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
 			tmpl.Execute(w, User{UserName: userName[0]})
 			// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
