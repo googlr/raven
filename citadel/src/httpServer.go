@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	// "errors"
 	"fmt"
 	"net/http"
 	"net/rpc"
@@ -92,6 +92,34 @@ func (usr *User) UserLoginValidation(args *LoginArgs, reply *LoginReply) error {
 		UserName:  "",
 		Password:  "",
 		Following: []int{}}
+	return nil
+}
+
+func (usr *User) UserSignUpHandler(args *LoginArgs, reply *LoginReply) error {
+	//validation
+	for _, v := range userList {
+		// fmt.Println("User: ", v.UserName)
+
+		if v.UserName == args.UserLoginName {
+			// && v.Password == password[0]
+			// userName already registered!
+			reply.UserLoginStatus = false
+			reply.UserLoginProfile = User{UserId: 0,
+				UserName:  "",
+				Password:  "",
+				Following: []int{},
+			}
+			return nil
+		}
+	}
+
+	reply.UserLoginStatus = true
+	reply.UserLoginProfile = User{
+		UserId:    len(userList) + 1,
+		UserName:  args.UserLoginName,
+		Password:  "qwerty",
+		Following: []int{},
+	}
 	return nil
 }
 
