@@ -208,35 +208,34 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 		userName := r.Form["username"]
 		// password := r.Form["passward"]
 
-		//validate username
-		loginStatus := true
-		for _, v := range userList {
-			if v.UserName == userName[0] {
-				// Duplicate username
-				loginStatus = false
-
-				tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
-				tmpl.Execute(w, User{UserName: userName[0]})
-			}
-
+		// SignUp RPCs
+		client, err := rpc.DialHTTP("tcp", serverAddress+":1234")
+		if err != nil {
+			log.Fatal("dialing:", err)
 		}
-
-		//login success
-		newUserProfile := User{
-			UserId:    len(userList) + 1,
-			UserName:  userName[0],
-			Password:  "qwerty",
-			Following: []int{},
+		// Synchronous call
+		tempPassword := "qwerty"
+		loginArgs := LoginArgs{userName[0], tempPassword}
+		var loginReply LoginReply
+		err = client.Call("User.UserSignUpHandler", loginArgs, &loginReply)
+		if err != nil {
+			log.Fatal("User Login error:", err)
 		}
+		fmt.Printf("User: %s, SignUpStatus: %t\n", loginArgs.UserLoginName, loginReply.UserLoginStatus)
 
-		if loginStatus == true {
+		if loginReply.UserLoginStatus == false {
+			//userName already used!
+			tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
+			tmpl.Execute(w, User{UserName: userName[0]})
+		} else {
+			//login success
 			session, _ := store.Get(r, "cookie-name")
 			// Set user as authenticated
 			session.Values["authenticated"] = true
 			session.Save(r, w)
 
 			tmpl := template.Must(template.ParseFiles("templates/homepage.html"))
-			tmpl.Execute(w, newUserProfile)
+			tmpl.Execute(w, loginReply.UserLoginProfile)
 			// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
 		}
 
