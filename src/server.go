@@ -79,12 +79,12 @@ type Quotient struct {
 }
 
 type LoginArgs struct {
-	userName, password string
+	UserLoginName, UserLoginPassword string
 }
 
 type LoginReply struct {
-	status      bool
-	userProfile *User
+	UserLoginStatus  bool
+	UserLoginProfile User
 }
 
 func main() {
@@ -152,8 +152,10 @@ func login(w http.ResponseWriter, r *http.Request) {
 		password := r.Form["passward"]
 		fmt.Println(reflect.TypeOf(userName))
 		fmt.Println(reflect.TypeOf(password))
-		// fmt.Println("len: ", len(userName))
-		// fmt.Println("len: ", len(password))
+		// fmt.Println("userName len: ", len(userName))
+		// fmt.Println("password len: ", len(password))
+		// fmt.Println("userName : ", userName)
+		// fmt.Println("password : ", r.Form["passward"])
 
 		session, _ := store.Get(r, "cookie-name")
 
@@ -163,24 +165,18 @@ func login(w http.ResponseWriter, r *http.Request) {
 			log.Fatal("dialing:", err)
 		}
 		// Synchronous call
-		args := Args{17, 8}
-		var reply int
-		err = client.Call("Arith.Multiply", args, &reply)
-		if err != nil {
-			log.Fatal("arith error:", err)
-		}
-		fmt.Printf("Arith: %d*%d=%d\n", args.A, args.B, reply)
-
 		// RPC call for validation
-		loginArgs := LoginArgs{userName[0], "qwerty"}
+		tempPassword := "qwerty"
+		loginArgs := LoginArgs{userName[0], tempPassword}
+		fmt.Printf("I am on line 179\n")
 		var loginReply LoginReply
-		err = client.Call("UserLoginValidation", loginArgs, &loginReply)
+		err = client.Call("User.UserLoginValidation", loginArgs, &loginReply)
 		if err != nil {
-			log.Fatal("arith error:", err)
+			log.Fatal("User Login error:", err)
 		}
-		fmt.Printf("User: %s, LoginStatus: %t\n", loginArgs.userName, loginReply.status)
+		fmt.Printf("User: %s, LoginStatus: %t\n", loginArgs.UserLoginName, loginReply.UserLoginStatus)
 
-		if loginReply.status == true {
+		if loginReply.UserLoginStatus == true {
 			// Set user as authenticated
 			session.Values["authenticated"] = true
 			session.Save(r, w)
@@ -190,7 +186,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 				log.Print("template parsing error: ", err) // log it
 			}
 
-			tmpl.Execute(w, *(loginReply.userProfile))
+			tmpl.Execute(w, loginReply.UserLoginProfile)
 		} else {
 			tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
 			tmpl.Execute(w, User{UserName: userName[0]})
