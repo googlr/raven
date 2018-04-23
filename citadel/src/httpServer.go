@@ -7,6 +7,54 @@ import (
 	"net/rpc"
 )
 
+// type UserAccount struct {
+// 	UserName string
+// 	Password string
+// }
+
+type User struct {
+	UserId    int
+	UserName  string
+	Password  string
+	Following []int
+}
+
+type Message struct {
+	SenderId int
+	Content  string
+}
+
+var userList = []User{
+	{UserId: 1,
+		UserName:  "Ned Stark",
+		Password:  "qwerty",
+		Following: []int{2}},
+	{UserId: 2,
+		UserName:  "Robert Baratheon",
+		Password:  "qwerty",
+		Following: []int{1}},
+	{UserId: 3,
+		UserName:  "Jaime Lannister",
+		Password:  "qwerty",
+		Following: []int{1, 2, 7}},
+	{UserId: 4,
+		UserName:  "Jon Snow",
+		Password:  "qwerty",
+		Following: []int{1, 6, 7}},
+	{UserId: 5,
+		UserName:  "Tyrion Lannister",
+		Password:  "qwerty",
+		Following: []int{1}},
+	{UserId: 6,
+		UserName:  "Daenerys Targaryen",
+		Password:  "qwerty",
+		Following: []int{4, 7}},
+	{UserId: 7,
+		UserName:  "Cersei Lannister",
+		Password:  "qwerty",
+		Following: []int{3, 6}},
+}
+
 type Args struct {
 	A, B int
 }
@@ -17,28 +65,45 @@ type Quotient struct {
 
 type Arith int
 
-func (t *Arith) Multiply(args *Args, reply *int) error {
-	*reply = args.A * args.B
-	return nil
+type LoginArgs struct {
+	UserLoginName, UserLoginPassword string
 }
 
-func (t *Arith) Divide(args *Args, quo *Quotient) error {
-	if args.B == 0 {
-		return errors.New("divide by zero")
+type LoginReply struct {
+	UserLoginStatus  bool
+	UserLoginProfile User
+}
+
+func (usr *User) UserLoginValidation(args *LoginArgs, reply *LoginReply) error {
+	//validation
+	for _, v := range userList {
+		// fmt.Println("User: ", v.UserName)
+
+		if v.UserName == args.UserLoginName {
+			// && v.Password == password[0]
+			// 	//login success
+			reply.UserLoginStatus = true
+			reply.UserLoginProfile = v
+			return nil
+		}
 	}
-	quo.Quo = args.A / args.B
-	quo.Rem = args.A % args.B
+	reply.UserLoginStatus = false
+	reply.UserLoginProfile = User{UserId: 0,
+		UserName:  "",
+		Password:  "",
+		Following: []int{}}
 	return nil
 }
 
 func main() {
 
-	arith := new(Arith)
-	rpc.Register(arith)
+	user := new(User)
+	rpc.Register(user)
 	rpc.HandleHTTP()
 
 	err := http.ListenAndServe(":1234", nil)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+
 }
