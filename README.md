@@ -10,3 +10,7 @@
   The application is based on three parts:
   1. Front-end: 
   2. Back-end: `Citadel`
+  
+  
+## Reference
+  1. Session: [github.com/gorilla/sessions](http://www.gorillatoolkit.org/pkg/sessions)
