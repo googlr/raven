@@ -39,45 +39,6 @@ type Message struct {
 	Content  string
 }
 
-var userList = []User{
-	{UserId: 1,
-		UserName:  "Ned Stark",
-		Password:  "qwerty",
-		Following: []int{2}},
-	{UserId: 2,
-		UserName:  "Robert Baratheon",
-		Password:  "qwerty",
-		Following: []int{1}},
-	{UserId: 3,
-		UserName:  "Jaime Lannister",
-		Password:  "qwerty",
-		Following: []int{1, 2, 7}},
-	{UserId: 4,
-		UserName:  "Jon Snow",
-		Password:  "qwerty",
-		Following: []int{1, 6, 7}},
-	{UserId: 5,
-		UserName:  "Tyrion Lannister",
-		Password:  "qwerty",
-		Following: []int{1}},
-	{UserId: 6,
-		UserName:  "Daenerys Targaryen",
-		Password:  "qwerty",
-		Following: []int{4, 7}},
-	{UserId: 7,
-		UserName:  "Cersei Lannister",
-		Password:  "qwerty",
-		Following: []int{3, 6}},
-}
-
-type Args struct {
-	A, B int
-}
-
-type Quotient struct {
-	Quo, Rem int
-}
-
 type LoginArgs struct {
 	UserLoginName, UserLoginPassword string
 }
