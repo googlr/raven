@@ -56,6 +56,16 @@ type LoginReply struct {
 	UserLoginProfile UserProfile
 }
 
+type SendMessageArgs struct {
+	UserLoginName string
+	Msg           Message
+}
+
+type SendMessageReply struct {
+	MsgStatus        bool
+	UserLoginProfile UserProfile
+}
+
 func init() {
 	gob.Register(&UserProfile{})
 }
@@ -231,6 +241,7 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 			session, _ := store.Get(r, "cookie-name")
 			// Set user as authenticated
 			session.Values["authenticated"] = true
+			session.Values["currentUser"] = loginReply.UserLoginProfile
 
 			session.Save(r, w)
 
@@ -259,13 +270,45 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 	} else {
 		r.ParseForm()
 
-		newMessage := Message{
-			SenderId: 0,
+		if userPfl, ok := session.Values["currentUser"].(*UserProfile); !ok || userPfl == nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		userPfl := session.Values["currentUser"].(*UserProfile)
+
+		newMsg := Message{
+			SenderId: userPfl.UserId,
 			// timeStamp: time.Now(),
-			Content: r.Form["message"][0],
+			Content: r.FormValue("message"),
 		}
 		// fmt.Fprintf(w, "Message <div> <p>%s</p> </div> sent.\n", msg)
-		fmt.Println(newMessage)
+		fmt.Println(newMsg)
+
+		// sendMessage RPCs
+		client, err := rpc.DialHTTP("tcp", serverAddress+":1234")
+		if err != nil {
+			log.Fatal("dialing:", err)
+		}
+		// Synchronous call
+		msgArgs := SendMessageArgs{userPfl.UserName, newMsg}
+		var msgReply SendMessageReply
+		err = client.Call("UserProfile.SendMessageHandler", msgArgs, &msgReply)
+		if err != nil {
+			log.Fatal("Send Message error:", err)
+		}
+		fmt.Printf("User: %s, sendMessageStatus: %t\n", msgArgs.UserLoginName, msgReply.MsgStatus)
+
+		//re-render the page
+		if msgReply.MsgStatus == true {
+			tmpl := template.Must(template.ParseFiles("templates/homepage.html"))
+			tmpl.Execute(w, msgReply.UserLoginProfile)
+		} else {
+			fmt.Println("SendMessage: userName does not exist, go to sign up.")
+			logout(w, r)
+		}
+
+		// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
 	}
 }
 
