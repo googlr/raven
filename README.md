@@ -10,3 +10,9 @@
   The application is based on three parts:
   1. Front-end: 
   2. Back-end: `Citadel`
+  
+## Questions
+  - Password parsing: `<input type="password" name="userpswd" value="qwerty"><br />`. I changed the `name="password"` to `name="userpswd"`, then `r.FormValue("userpswd")` is not longer empty. To be answered.
+  
+## Reference
+  1. Session: [github.com/gorilla/sessions](http://www.gorillatoolkit.org/pkg/sessions)
