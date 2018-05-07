@@ -7,9 +7,20 @@
 </head>
 
 <body>
+    <div class="topnav" id="myTopnav">
+        <a href="#home" class="active">Home</a>
+        <a href="#news">News</a>
+        <a href="#contact">Contact</a>
+        <a href="#about">About</a>
+        <!-- <a href="javascript:void(0);" class="icon" onclick="myFunction()">&#9776;</a> -->
+        <!-- The link with class="icon" is used to open and close the topnav on small screens. -->
+    </div>
     <h1>Raven<h1>
 
     <h2>Welcome, {{.UserName}}</h2>
+    <form action="/logout" method="post">
+                <input type="submit" value="Logout">
+    </form>
     <div>
         <h2>Profile</h2>
         <p>UserName: {{.UserName}}</p>

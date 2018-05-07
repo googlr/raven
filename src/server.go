@@ -6,10 +6,11 @@ import (
 	"log"
 	"net/http"
 	// "strings"
+	"encoding/gob"
 	"github.com/gorilla/sessions"
 	"net/rpc"
 	"os"
-	"reflect"
+	// "reflect"
 	"time"
 )
 
@@ -27,16 +28,23 @@ type PageVariables struct {
 	Time string
 }
 
-type User struct {
-	UserId    int
-	UserName  string
-	Password  string
+type UserProfile struct {
+	UserId   int
+	UserName string
+	// Password  string
 	Following []int
+	PostMsg   []Message
+}
+
+type UserCredential struct {
+	UserId   int
+	Password string
 }
 
 type Message struct {
 	SenderId int
-	Content  string
+	// timeStamp Time
+	Content string
 }
 
 type LoginArgs struct {
@@ -45,7 +53,11 @@ type LoginArgs struct {
 
 type LoginReply struct {
 	UserLoginStatus  bool
-	UserLoginProfile User
+	UserLoginProfile UserProfile
+}
+
+func init() {
+	gob.Register(&UserProfile{})
 }
 
 func main() {
@@ -64,6 +76,9 @@ func main() {
 
 	//Login
 	http.HandleFunc("/login", login)
+
+	// signUpRedirect
+	http.HandleFunc("/signUpRedirect", signUpRedirect)
 
 	//SignUp
 	http.HandleFunc("/signup", signUp)
@@ -90,11 +105,11 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 	t, err := template.ParseFiles("index.html") //parse the html file homepage.html
 	if err != nil {                             // if there is an error
-		log.Print("template parsing error: ", err) // log it
+		log.Print("Index template parsing error: ", err) // log it
 	}
 	err = t.Execute(w, HomePageVars) //execute the template and pass it the HomePageVars struct to fill in the gaps
 	if err != nil {                  // if there is an error
-		log.Print("template executing error: ", err) //log it
+		log.Print("Index template executing error: ", err) //log it
 	}
 }
 
@@ -106,19 +121,23 @@ func login(w http.ResponseWriter, r *http.Request) {
 		t.Execute(w, nil)
 	} else {
 		r.ParseForm()
+		// fmt.Printf("%+v\n", r.Form)
+		// for key, values := range r.Form { // range over map
+		// 	for _, value := range values { // range over []string
+		// 		fmt.Println(key, value)
+		// 	}
+		// }
 		// logic part of log in
-		fmt.Println("username:", r.Form["username"])
-		fmt.Println("password:", r.Form["password"])
-		userName := r.Form["username"]
-		password := r.Form["passward"]
-		fmt.Println(reflect.TypeOf(userName))
-		fmt.Println(reflect.TypeOf(password))
-		// fmt.Println("userName len: ", len(userName))
-		// fmt.Println("password len: ", len(password))
+		userName := r.FormValue("username")
+		userPswd := r.FormValue("userpswd")
 		// fmt.Println("userName : ", userName)
-		// fmt.Println("password : ", r.Form["passward"])
+		// fmt.Println("password : ", password)
 
-		session, _ := store.Get(r, "cookie-name")
+		session, err := store.Get(r, "cookie-name")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		// Authentication goes here
 		client, err := rpc.DialHTTP("tcp", serverAddress+":1234")
@@ -127,11 +146,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 		}
 		// Synchronous call
 		// RPC call for validation
-		tempPassword := "qwerty"
-		loginArgs := LoginArgs{userName[0], tempPassword}
-		fmt.Printf("I am on line 179\n")
+		loginArgs := LoginArgs{userName, userPswd}
 		var loginReply LoginReply
-		err = client.Call("User.UserLoginValidation", loginArgs, &loginReply)
+		err = client.Call("UserProfile.UserLoginValidation", loginArgs, &loginReply)
 		if err != nil {
 			log.Fatal("User Login error:", err)
 		}
@@ -140,6 +157,17 @@ func login(w http.ResponseWriter, r *http.Request) {
 		if loginReply.UserLoginStatus == true {
 			// Set user as authenticated
 			session.Values["authenticated"] = true
+			// Retrieve our struct and type-assert it
+			// val := session.Values["user"]
+			// var usr = &UserProfile{}
+			// if usr, ok := val.(*UserProfile); !ok {
+			// 	// Handle the case that it's not an expected type
+			// 	fmt.Printf("Error in signUp\n")
+			// }
+			// fmt.Println(usr)
+			// Now we can use our User object
+			session.Values["currentUser"] = loginReply.UserLoginProfile
+
 			session.Save(r, w)
 
 			tmpl, err := template.ParseFiles("templates/homepage.html") //parse the html file homepage.html
@@ -150,10 +178,21 @@ func login(w http.ResponseWriter, r *http.Request) {
 			tmpl.Execute(w, loginReply.UserLoginProfile)
 		} else {
 			tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
-			tmpl.Execute(w, User{UserName: userName[0]})
+			tmpl.Execute(w, nil)
 			// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
 		}
 
+	}
+}
+
+func signUpRedirect(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Session: Redirect User to Sign Up.")
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("login.gtpl")
+		t.Execute(w, nil)
+	} else {
+		tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
+		tmpl.Execute(w, nil)
 	}
 }
 
@@ -166,8 +205,8 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 	} else {
 		r.ParseForm()
 		// logic part of log in
-		userName := r.Form["username"]
-		// password := r.Form["passward"]
+		userName := r.FormValue("username")
+		userPswd := r.FormValue("userpswd")
 
 		// SignUp RPCs
 		client, err := rpc.DialHTTP("tcp", serverAddress+":1234")
@@ -175,10 +214,9 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 			log.Fatal("dialing:", err)
 		}
 		// Synchronous call
-		tempPassword := "qwerty"
-		loginArgs := LoginArgs{userName[0], tempPassword}
+		loginArgs := LoginArgs{userName, userPswd}
 		var loginReply LoginReply
-		err = client.Call("User.UserSignUpHandler", loginArgs, &loginReply)
+		err = client.Call("UserProfile.UserSignUpHandler", loginArgs, &loginReply)
 		if err != nil {
 			log.Fatal("User Login error:", err)
 		}
@@ -187,12 +225,13 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 		if loginReply.UserLoginStatus == false {
 			//userName already used!
 			tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
-			tmpl.Execute(w, User{UserName: userName[0]})
+			tmpl.Execute(w, nil)
 		} else {
 			//login success
 			session, _ := store.Get(r, "cookie-name")
 			// Set user as authenticated
 			session.Values["authenticated"] = true
+
 			session.Save(r, w)
 
 			tmpl := template.Must(template.ParseFiles("templates/homepage.html"))
@@ -219,18 +258,25 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 		t.Execute(w, nil)
 	} else {
 		r.ParseForm()
-		// logic part of log in
-		msg := r.Form["message"]
-		// password := r.Form["passward"]
-		fmt.Fprintf(w, "Message <div> <p>%s</p> </div> sent.\n", msg)
 
+		newMessage := Message{
+			SenderId: 0,
+			// timeStamp: time.Now(),
+			Content: r.Form["message"][0],
+		}
+		// fmt.Fprintf(w, "Message <div> <p>%s</p> </div> sent.\n", msg)
+		fmt.Println(newMessage)
 	}
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Session: User is logging out.")
 	session, _ := store.Get(r, "cookie-name")
 
 	// Revoke users authentication
 	session.Values["authenticated"] = false
 	session.Save(r, w)
+
+	//Redirect to index
+	Index(w, r)
 }

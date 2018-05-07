@@ -7,16 +7,21 @@
 </head>
 
 <body>
-	<div>
-    	<h1>Raven</h1>
-    <p>The distributed online news and social networking service on the continent of Westeros.</p>
+    <div>
+        <h1>Raven</h1>
+        <p>The distributed online news and social networking service on the continent of Westeros.</p>
     </div>
     <div>
-    	<h2>Welcome, {{.UserName}}. Sign up below.</h2>
+        <h2>Welcome, my friend. Sign up below.</h2>
         <form action="/signup" method="post">
-            Username:
-            <input type="text" name="username" value="{{.UserName}}"> Password:
-            <input type="password" name="password" value="qwerty">
+            <label>Username:</label>
+            <br />
+            <input type="text" name="username" value="">
+            <br />
+            <label>Password:</label>
+            <br />
+            <input type="password" name="userpswd" value="qwerty">
+            <br />
             <input type="submit" value="SignUp">
         </form>
     </div>
