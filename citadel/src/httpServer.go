@@ -31,6 +31,16 @@ type Message struct {
 	Content string
 }
 
+type SendMessageArgs struct {
+	UserLoginName string
+	Msg           Message
+}
+
+type SendMessageReply struct {
+	MsgStatus        bool
+	UserLoginProfile UserProfile
+}
+
 var userProfileMap = map[string]UserProfile{
 	"Ned Stark": UserProfile{UserId: 1,
 		UserName: "Ned Stark",
@@ -230,6 +240,31 @@ func (usr *UserProfile) UserSignUpHandler(args *LoginArgs, reply *LoginReply) er
 		return nil
 	}
 
+	// Never come here
+	return nil
+}
+
+func (usr *UserProfile) SendMessageHandler(args *SendMessageArgs, reply *SendMessageReply) error {
+	//validation
+	userName := args.UserLoginName
+	userPfl, ok := userProfileMap[userName]
+	if ok == true {
+		fmt.Println("SendMessage: success.")
+		reply.MsgStatus = true
+		userPfl.PostMsg = append(userPfl.PostMsg, args.Msg)
+		reply.UserLoginProfile = userPfl
+		return nil
+	} else {
+		fmt.Println("SendMessage: userName does not exist, go to sign up.")
+		reply.MsgStatus = false
+		reply.UserLoginProfile = UserProfile{
+			UserId:   0,
+			UserName: "",
+			// Password:  "",
+			Following: []int{},
+			PostMsg:   []Message{}}
+		return nil
+	}
 	// Never come here
 	return nil
 }
