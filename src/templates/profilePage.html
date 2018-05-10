@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="/resources/css/index.css">
+    <title></title>
+</head>
+
+<body>
+    <h1>Raven<h1>
+
+    <div class="homeButton">
+        <form action="/home" method="post">
+                <input type="submit" value="Home">
+        </form>
+    </div>
+
+    <div class="logoutButton">
+        <form action="/logout" method="post">
+                <input type="submit" value="Logout">
+        </form>   
+    </div>
+
+    <div class="profileBox">
+        <h2>Profile</h2>
+        <p>UserName: {{.UserName}}</p>
+        <p>UserId: {{.UserId}}</p>
+        <p>UserBio: {{.UserBio}}</p>
+        <p>Following: {{.FollowingNum}}</p>
+        <p>Follower: {{.FollowerNum}}</p>
+    </div>
+
+    <div class="followUnfollowButton">
+            <form action="/followUnfollowUsers" method="post">
+                <input type="submit" value="Follow/Unfollow">
+            </form>
+    </div>
+
+    <div class="messageBox">
+        <p>Messages recieved:</p>
+        <ul>
+            {{range $index, $msg :=.PostMsg}}
+            <li>{{$msg}}</li>
+            {{end}}
+            
+            {{range $index, $element := .}}{{$index}}
+                {{range $element}}{{.Value}}
+                {{end}}
+            {{end}}
+        </ul> 
+    </div>
+</body>
+
+</html>

@@ -2,165 +2,48 @@ package main
 
 import (
 	// "errors"
+	"encoding/gob"
 	"fmt"
 	"net/http"
 	"net/rpc"
 )
 
-// type UserAccount struct {
-// 	UserName string
-// 	Password string
-// }
+type PageVariables struct {
+	Date string
+	Time string
+}
+
+type HomePageArgs struct {
+	User             UserProfile
+	MsgFromFollowing []Message
+}
 
 type UserProfile struct {
-	UserId   int
-	UserName string
-	// Password  string
-	Following []int
-	PostMsg   []Message
+	UserEmail string
+	UserId    int
+	UserName  string
+	UserBio   string
+	// Following []int
+	// Follower  []int
+	// PostMsg   []Message
+	FollowingNum int
+	FollowerNum  int
 }
 
 type UserCredential struct {
-	UserId   int
-	Password string
+	UserEmail string
+	Password  string
 }
 
 type Message struct {
-	SenderId int
-	// timeStamp Time
-	Content string
-}
-
-type SendMessageArgs struct {
-	UserLoginName string
-	Msg           Message
-}
-
-type SendMessageReply struct {
-	MsgStatus        bool
-	UserLoginProfile UserProfile
-}
-
-var userProfileMap = map[string]UserProfile{
-	"Ned Stark": UserProfile{UserId: 1,
-		UserName: "Ned Stark",
-		// Password:  "qwerty",
-		Following: []int{2},
-		PostMsg: []Message{
-			{
-				SenderId: 1,
-				Content:  "The winters are hard but the Starks will endure. We always have."},
-			{
-				SenderId: 1,
-				Content:  "The next time we see each other, we'll talk about your mother. I promise."}}},
-	"Robert Baratheon": UserProfile{UserId: 2,
-		UserName: "Robert Baratheon",
-		// Password:  "qwerty",
-		Following: []int{1},
-		PostMsg: []Message{
-			{
-				SenderId: 2,
-				Content:  "I'm not trying to honor you. I'm trying to get you to run my kingdom while I eat, drink, and whore my way to an early grave."}}},
-	"Jaime Lannister": UserProfile{UserId: 3,
-		UserName: "Jaime Lannister",
-		// Password:  "qwerty",
-		Following: []int{1, 2, 7},
-		PostMsg: []Message{
-			{
-				SenderId: 3,
-				Content:  "The things I do for love."}}},
-	"Jon Snow": UserProfile{UserId: 4,
-		UserName: "Jon Snow",
-		// Password:  "qwerty",
-		Following: []int{1, 6, 7},
-		PostMsg: []Message{
-			{
-				SenderId: 4,
-				Content:  "I am not a Stark."},
-			{
-				SenderId: 4,
-				Content:  "My watch is ended."}}},
-	"Tyrion Lannister": UserProfile{UserId: 5,
-		UserName: "Tyrion Lannister",
-		// Password:  "qwerty",
-		Following: []int{1},
-		PostMsg: []Message{
-			{
-				SenderId: 5,
-				Content:  "Never forget what you are, the rest of the world will not. Wear it like armor and it can never be used to hurt you."},
-			{
-				SenderId: 5,
-				Content:  "I have to disagree. Death is so final, yet life is full of possibilities."},
-			{
-				SenderId: 5,
-				Content:  "A mind needs books like a sword needs a whetstone."},
-			{
-				SenderId: 5,
-				Content:  "I have a tender spot in my heart for cripples and bastards and broken things."},
-			{
-				SenderId: 5,
-				Content:  "We’ve had vicious kings and we’ve had idiot kings, but I don’t know if we’ve ever been cursed with a vicious idiot boy king!"},
-			{
-				SenderId: 5,
-				Content:  "It’s hard to put a leash on a dog once you’ve put a crown on its head."},
-			{
-				SenderId: 5,
-				Content:  "Drinking and lust. No man can match me in these things. I am the god of tits and wine… I shall build a shrine to myself at the next brothel I visit."},
-			{
-				SenderId: 5,
-				Content:  "Every time we deal with an enemy, we create two more."}}},
-	"Daenerys Targaryen": UserProfile{UserId: 6,
-		UserName: "Daenerys Targaryen",
-		// Password:  "qwerty",
-		Following: []int{4, 7},
-		PostMsg: []Message{
-			{
-				SenderId: 6,
-				Content:  "I am the blood of the dragon. I must be strong. I must have fire in my eyes when I face them, not tears."},
-			{
-				SenderId: 6,
-				Content:  "Valar morghulis. Daenerys Targaryen: Yes. All men must die, but we are not men."}}},
-	"Cersei Lannister": UserProfile{UserId: 7,
-		UserName: "Cersei Lannister",
-		// Password:  "qwerty",
-		Following: []int{3, 6},
-		PostMsg: []Message{
-			{
-				SenderId: 7,
-				Content:  "Everyone who isn’t us is an enemy."},
-			{
-				SenderId: 7,
-				Content:  "When you play the game of thrones you win or you die. There is no middle ground."},
-			{
-				SenderId: 7,
-				Content:  "I choose violence."}}}}
-
-var userCredentialMap = map[string]UserCredential{
-	"Ned Stark": UserCredential{UserId: 1,
-		Password: "qwerty",
-	},
-	"Robert Baratheon": UserCredential{UserId: 1,
-		Password: "qwerty",
-	},
-	"Jaime Lannister": UserCredential{UserId: 1,
-		Password: "qwerty",
-	},
-	"Jon Snow": UserCredential{UserId: 1,
-		Password: "qwerty",
-	},
-	"Tyrion Lannister": UserCredential{UserId: 1,
-		Password: "qwerty",
-	},
-	"Daenerys Targaryen": UserCredential{UserId: 1,
-		Password: "qwerty",
-	},
-	"Cersei Lannister": UserCredential{UserId: 1,
-		Password: "qwerty",
-	},
+	SenderEmail string
+	SenderName  string
+	// MsgTimeStamp Time
+	MsgContent string
 }
 
 type LoginArgs struct {
-	UserLoginName, UserLoginPassword string
+	UserLoginEmail, UserLoginPassword string
 }
 
 type LoginReply struct {
@@ -168,15 +51,297 @@ type LoginReply struct {
 	UserLoginProfile UserProfile
 }
 
-func (usr *UserProfile) UserLoginValidation(args *LoginArgs, reply *LoginReply) error {
+type SignUpArgs struct {
+	UserSignUpEmail, UserSignUpName, UserSignUpPassword string
+}
+
+type SignUpReply struct {
+	UserSignUpStatus  bool
+	UserSignUpProfile UserProfile
+}
+
+type SendMessageReply struct {
+	SendMsgStatus  bool
+	SendMsgProfile UserProfile
+}
+
+func init() {
+	gob.Register(&UserProfile{})
+}
+
+var userFollowingMap = map[string]map[string]string{
+	"Ned.Stark@Winterfell.com": {
+		"Robert.Baratheon@kingslanding.com": "Robert.Baratheon@kingslanding.com",
+	},
+	"Robert.Baratheon@kingslanding.com": {
+		"Ned.Stark@Winterfell.com": "Ned.Stark@Winterfell.com",
+	},
+	"Jaime.Lannister@CasterlyRock.com": {
+		"Tyrion.Lannister@CasterlyRock.com": "Tyrion.Lannister@CasterlyRock.com",
+		"Cersei.Lannister@CasterlyRock.com": "Cersei.Lannister@CasterlyRock.com",
+	},
+	"Jon.Snow@Winterfell.com": {
+		"Ned.Stark@Winterfell.com":           "Ned.Stark@Winterfell.com",
+		"Daenerys.Targaryen@Dragonstone.com": "Daenerys.Targaryen@Dragonstone.com",
+	},
+	"Tyrion.Lannister@CasterlyRock.com": {
+		"Ned.Stark@Winterfell.com":           "Ned.Stark@Winterfell.com",
+		"Robert.Baratheon@kingslanding.com":  "Robert.Baratheon@kingslanding.com",
+		"Jaime.Lannister@CasterlyRock.com":   "Jaime.Lannister@CasterlyRock.com",
+		"Jon.Snow@Winterfell.com":            "Jon.Snow@Winterfell.com",
+		"Daenerys.Targaryen@Dragonstone.com": "Daenerys.Targaryen@Dragonstone.com",
+		"Cersei.Lannister@CasterlyRock.com":  "Cersei.Lannister@CasterlyRock.com",
+	},
+	"Daenerys.Targaryen@Dragonstone.com": {
+		"Tyrion.Lannister@CasterlyRock.com": "Tyrion.Lannister@CasterlyRock.com",
+		"Jon.Snow@Winterfell.com":           "Jon.Snow@Winterfell.com",
+		"Cersei.Lannister@CasterlyRock.com": "Cersei.Lannister@CasterlyRock.com",
+	},
+	"Cersei.Lannister@CasterlyRock.com": {
+		"Jaime.Lannister@CasterlyRock.com": "Jaime.Lannister@CasterlyRock.com",
+	},
+}
+
+var userFollowerMap = map[string]map[string]string{
+	"Ned.Stark@Winterfell.com": {
+		"Robert.Baratheon@kingslanding.com": "Robert.Baratheon@kingslanding.com",
+		"Jon.Snow@Winterfell.com":           "Jon.Snow@Winterfell.com",
+		"Tyrion.Lannister@CasterlyRock.com": "Tyrion.Lannister@CasterlyRock.com",
+	},
+
+	"Robert.Baratheon@kingslanding.com": {
+		"Ned.Stark@Winterfell.com":          "Ned.Stark@Winterfell.com",
+		"Tyrion.Lannister@CasterlyRock.com": "Tyrion.Lannister@CasterlyRock.com",
+	},
+	"Jaime.Lannister@CasterlyRock.com": {
+		"Tyrion.Lannister@CasterlyRock.com": "Tyrion.Lannister@CasterlyRock.com",
+		"Cersei.Lannister@CasterlyRock.com": "Cersei.Lannister@CasterlyRock.com",
+	},
+	"Jon.Snow@Winterfell.com": {
+		"Tyrion.Lannister@CasterlyRock.com":  "Tyrion.Lannister@CasterlyRock.com",
+		"Daenerys.Targaryen@Dragonstone.com": "Daenerys.Targaryen@Dragonstone.com",
+	},
+	"Tyrion.Lannister@CasterlyRock.com": {
+		"Jaime.Lannister@CasterlyRock.com":   "Jaime.Lannister@CasterlyRock.com",
+		"Daenerys.Targaryen@Dragonstone.com": "Daenerys.Targaryen@Dragonstone.com",
+	},
+	"Daenerys.Targaryen@Dragonstone.com": {
+		"Jon.Snow@Winterfell.com":           "Jon.Snow@Winterfell.com",
+		"Tyrion.Lannister@CasterlyRock.com": "Tyrion.Lannister@CasterlyRock.com",
+	},
+	"Cersei.Lannister@CasterlyRock.com": {
+		"Jaime.Lannister@CasterlyRock.com":   "Jaime.Lannister@CasterlyRock.com",
+		"Tyrion.Lannister@CasterlyRock.com":  "Tyrion.Lannister@CasterlyRock.com",
+		"Daenerys.Targaryen@Dragonstone.com": "Daenerys.Targaryen@Dragonstone.com",
+	},
+}
+
+var userMsgMap = map[string][]Message{
+	"Ned.Stark@Winterfell.com": []Message{
+		{
+			SenderEmail: "Ned.Stark@Winterfell.com",
+			SenderName:  "Ned Stark",
+			MsgContent:  "The winters are hard but the Starks will endure. We always have."},
+		{
+			SenderEmail: "Ned.Stark@Winterfell.com",
+			SenderName:  "Ned Stark",
+			MsgContent:  "The next time we see each other, we'll talk about your mother. I promise."},
+	},
+	"Robert.Baratheon@kingslanding.com": []Message{
+		{
+			SenderEmail: "Robert.Baratheon@kingslanding.com",
+			SenderName:  "Robert Baratheon",
+			MsgContent:  "I'm not trying to honor you. I'm trying to get you to run my kingdom while I eat, drink, and whore my way to an early grave."},
+		{
+			SenderEmail: "Robert.Baratheon@kingslanding.com",
+			SenderName:  "Robert Baratheon",
+			MsgContent:  "Kill the F**cing Boar."},
+	},
+	"Jaime.Lannister@CasterlyRock.com": []Message{
+		{
+			SenderEmail: "Jaime.Lannister@CasterlyRock.com",
+			SenderName:  "Jaime Lannister",
+			MsgContent:  "The things I do for love."},
+		{
+			SenderEmail: "Jaime.Lannister@CasterlyRock.com",
+			SenderName:  "Jaime Lannister",
+			MsgContent:  "There are no men like me. Only me."},
+	},
+	"Jon.Snow@Winterfell.com": []Message{
+		{
+			SenderEmail: "Jon.Snow@Winterfell.com",
+			SenderName:  "Jon Snow",
+			MsgContent:  "I am not a Stark."},
+		{
+			SenderEmail: "Jon.Snow@Winterfell.com",
+			SenderName:  "Jon Snow",
+			MsgContent:  "My watch is ended."},
+	},
+	"Tyrion.Lannister@CasterlyRock.com": []Message{
+		{
+			SenderEmail: "Tyrion.Lannister@CasterlyRock.com",
+			SenderName:  "Tyrion Lannister",
+			MsgContent:  "Never forget what you are, the rest of the world will not. Wear it like armor and it can never be used to hurt you."},
+		{
+			SenderEmail: "Tyrion.Lannister@CasterlyRock.com",
+			SenderName:  "Tyrion Lannister",
+			MsgContent:  "I have to disagree. Death is so final, yet life is full of possibilities."},
+		{
+			SenderEmail: "Tyrion.Lannister@CasterlyRock.com",
+			SenderName:  "Tyrion Lannister",
+			MsgContent:  "A mind needs books like a sword needs a whetstone."},
+		{
+			SenderEmail: "Tyrion.Lannister@CasterlyRock.com",
+			SenderName:  "Tyrion Lannister",
+			MsgContent:  "I have a tender spot in my heart for cripples and bastards and broken things."},
+		{
+			SenderEmail: "Tyrion.Lannister@CasterlyRock.com",
+			SenderName:  "Tyrion Lannister",
+			MsgContent:  "We’ve had vicious kings and we’ve had idiot kings, but I don’t know if we’ve ever been cursed with a vicious idiot boy king!"},
+		{
+			SenderEmail: "Tyrion.Lannister@CasterlyRock.com",
+			SenderName:  "Tyrion Lannister",
+			MsgContent:  "It’s hard to put a leash on a dog once you’ve put a crown on its head."},
+		{
+			SenderEmail: "Tyrion.Lannister@CasterlyRock.com",
+			SenderName:  "Tyrion Lannister",
+			MsgContent:  "Drinking and lust. No man can match me in these things. I am the god of tits and wine… I shall build a shrine to myself at the next brothel I visit."},
+		{
+			SenderEmail: "Tyrion.Lannister@CasterlyRock.com",
+			SenderName:  "Tyrion Lannister",
+			MsgContent:  "Every time we deal with an enemy, we create two more."},
+	},
+	"Daenerys.Targaryen@Dragonstone.com": []Message{
+		{
+			SenderEmail: "Daenerys.Targaryen@Dragonstone.com",
+			SenderName:  "Daenerys Targaryen",
+			MsgContent:  "I am the blood of the dragon. I must be strong. I must have fire in my eyes when I face them, not tears."},
+		{
+			SenderEmail: "Daenerys.Targaryen@Dragonstone.com",
+			SenderName:  "Daenerys Targaryen",
+			MsgContent:  "Valar morghulis. Daenerys Targaryen: Yes. All men must die, but we are not men."},
+	},
+	"Cersei.Lannister@CasterlyRock.com": []Message{
+		{
+			SenderEmail: "Cersei.Lannister@CasterlyRock.com",
+			SenderName:  "Cersei Lannister",
+			MsgContent:  "Everyone who isn’t us is an enemy."},
+		{
+			SenderEmail: "Cersei.Lannister@CasterlyRock.com",
+			SenderName:  "Cersei Lannister",
+			MsgContent:  "When you play the game of thrones you win or you die. There is no middle ground."},
+		{
+			SenderEmail: "Cersei.Lannister@CasterlyRock.com",
+			SenderName:  "Cersei Lannister",
+			MsgContent:  "I choose violence."},
+	},
+}
+
+var userProfileMap = map[string]UserProfile{
+	//"Ned Stark"
+	"Ned.Stark@Winterfell.com": UserProfile{
+		UserEmail:    "Ned.Stark@Winterfell.com",
+		UserId:       1,
+		UserName:     "Ned Stark",
+		UserBio:      "Winter is coming.",
+		FollowingNum: 1,
+		FollowerNum:  3,
+	},
+	//"Robert Baratheon"
+	"Robert.Baratheon@Kingslanding.com": UserProfile{
+		UserEmail:    "Robert.Baratheon@Kingslanding.com",
+		UserId:       2,
+		UserName:     "Robert Baratheon",
+		UserBio:      "Ours Is the Fury.",
+		FollowingNum: 1,
+		FollowerNum:  2,
+	},
+	//"Jaime Lannister"
+	"Jaime.Lannister@CasterlyRock.com": UserProfile{
+		UserEmail:    "Jaime.Lannister@CasterlyRock.com",
+		UserId:       3,
+		UserName:     "Jaime Lannister",
+		UserBio:      "A Lannister Always Pays His Debts.",
+		FollowingNum: 2,
+		FollowerNum:  2,
+	},
+	//"Jon Snow"
+	"Jon.Snow@Winterfell.com": UserProfile{
+		UserEmail:    "Jon.Snow@Winterfell.com",
+		UserId:       4,
+		UserName:     "Jon Snow",
+		UserBio:      "Winter is coming. Meanwhile, I am not a Stark.",
+		FollowingNum: 2,
+		FollowerNum:  2,
+	},
+	//"Tyrion Lannister"
+	"Tyrion.Lannister@CasterlyRock.com": UserProfile{
+		UserEmail:    "Tyrion.Lannister@CasterlyRock.com",
+		UserId:       5,
+		UserName:     "Tyrion Lannister",
+		UserBio:      "A Lannister Always Pays His Debts.",
+		FollowingNum: 6,
+		FollowerNum:  2,
+	},
+	"Daenerys.Targaryen@Dragonstone.com": UserProfile{
+		UserEmail:    "Daenerys.Targaryen@Dragonstone.com",
+		UserId:       6,
+		UserName:     "Daenerys Targaryen",
+		UserBio:      "Fire and Blood.",
+		FollowingNum: 3,
+		FollowerNum:  2,
+	},
+	"Cersei.Lannister@CasterlyRock.com": UserProfile{
+		UserEmail:    "Cersei.Lannister@CasterlyRock.com",
+		UserId:       7,
+		UserName:     "Cersei Lannister",
+		UserBio:      "A Lannister Always Pays His Debts.",
+		FollowingNum: 1,
+		FollowerNum:  3,
+	},
+}
+
+var userCredentialMap = map[string]UserCredential{
+	"Ned.Stark@Winterfell.com": UserCredential{
+		UserEmail: "Ned.Stark@Winterfell.com",
+		Password:  "qwerty",
+	},
+	"Robert.Baratheon@Kingslanding.com": UserCredential{
+		UserEmail: "Robert.Baratheon@Kingslanding.com",
+		Password:  "qwerty",
+	},
+	"Jaime.Lannister@CasterlyRock.com": UserCredential{
+		UserEmail: "Jaime.Lannister@CasterlyRock.com",
+		Password:  "qwerty",
+	},
+	"Jon.Snow@Winterfell.com": UserCredential{
+		UserEmail: "Jon.Snow@Winterfell.com",
+		Password:  "qwerty",
+	},
+	"Tyrion.Lannister@CasterlyRock.com": UserCredential{
+		UserEmail: "Tyrion.Lannister@CasterlyRock.com",
+		Password:  "qwerty",
+	},
+	"Daenerys.Targaryen@Dragonstone.com": UserCredential{
+		UserEmail: "Daenerys.Targaryen@Dragonstone.com",
+		Password:  "qwerty",
+	},
+	"Cersei.Lannister@CasterlyRock.com": UserCredential{
+		UserEmail: "Cersei.Lannister@CasterlyRock.com",
+		Password:  "qwerty",
+	},
+}
+
+func (usr *UserProfile) UserLoginHandler(args *LoginArgs, reply *LoginReply) error {
 	//validation
-	userName := args.UserLoginName
+	userEmail := args.UserLoginEmail
 	userPswd := args.UserLoginPassword
-	userProfile, ok := userProfileMap[userName]
+	userProfile, ok := userProfileMap[userEmail]
 	if ok == true {
-		userCredentialStored, ok2 := userCredentialMap[userName]
+		userCredentialStored, ok2 := userCredentialMap[userEmail]
 		if ok2 == true {
 			if userCredentialStored.Password == userPswd {
+				fmt.Println("UserLogin: success.")
 				reply.UserLoginStatus = true
 				reply.UserLoginProfile = userProfile
 				return nil
@@ -188,55 +353,62 @@ func (usr *UserProfile) UserLoginValidation(args *LoginArgs, reply *LoginReply) 
 		}
 	} else {
 		fmt.Println("UserLogin: userName does not exist, go to sign up.")
-		reply.UserLoginStatus = false
-		reply.UserLoginProfile = UserProfile{
-			UserId:   0,
-			UserName: "",
-			// Password:  "",
-			Following: []int{},
-			PostMsg:   []Message{}}
-		return nil
 	}
-	// Never come here
+	reply.UserLoginStatus = false
+	reply.UserLoginProfile = UserProfile{
+		UserEmail:    "",
+		UserId:       0,
+		UserName:     "",
+		UserBio:      "",
+		FollowingNum: 0,
+		FollowerNum:  0,
+	}
 	return nil
 }
 
-func (usr *UserProfile) UserSignUpHandler(args *LoginArgs, reply *LoginReply) error {
-	userName := args.UserLoginName
+func (usr *UserProfile) UserSignUpHandler(args *SignUpArgs, reply *SignUpReply) error {
+	// UserSignUpEmail, UserSignUpName, UserSignUpPassword
+	userEmail := args.UserSignUpEmail
+	userName := args.UserSignUpName
 	//validation
 
-	_, ok := userProfileMap[userName]
+	_, ok := userProfileMap[userEmail]
 	if ok == true {
 		fmt.Println("UserSignUp: userName already exist, be more creative.")
-		reply.UserLoginStatus = false
+		reply.UserSignUpStatus = false
 
-		reply.UserLoginProfile = UserProfile{
-			UserId:   0,
-			UserName: "",
-			// Password:  "",
-			Following: []int{},
-			PostMsg:   []Message{}}
+		reply.UserSignUpProfile = UserProfile{
+			UserEmail:    "",
+			UserId:       0,
+			UserName:     "",
+			UserBio:      "",
+			FollowingNum: 0,
+			FollowerNum:  0,
+		}
 		return nil
 	} else {
 		fmt.Println("UserSignUp: success.")
-		reply.UserLoginStatus = true
+		reply.UserSignUpStatus = true
 
-		//create a new User with Profile and Credential
+		//create a nil User with Profile and Credential
 		signUpUserProfile := UserProfile{
-			UserId:   len(userProfileMap) + 1,
-			UserName: args.UserLoginName,
-			// Password:  args.UserLoginPassword,
-			Following: []int{},
-			PostMsg:   []Message{}}
+			UserEmail:    userEmail,
+			UserId:       len(userProfileMap) + 1,
+			UserName:     userName,
+			UserBio:      "",
+			FollowingNum: 0,
+			FollowerNum:  0,
+		}
 
 		signUpUserCredential := UserCredential{
-			UserId:   signUpUserProfile.UserId,
-			Password: args.UserLoginPassword}
+			UserEmail: userEmail,
+			Password:  args.UserSignUpPassword,
+		}
 		//add new User to database
-		userProfileMap[userName] = signUpUserProfile
-		userCredentialMap[userName] = signUpUserCredential
+		userProfileMap[userEmail] = signUpUserProfile
+		userCredentialMap[userEmail] = signUpUserCredential
 
-		reply.UserLoginProfile = signUpUserProfile
+		reply.UserSignUpProfile = signUpUserProfile
 		return nil
 	}
 
@@ -244,28 +416,70 @@ func (usr *UserProfile) UserSignUpHandler(args *LoginArgs, reply *LoginReply) er
 	return nil
 }
 
-func (usr *UserProfile) SendMessageHandler(args *SendMessageArgs, reply *SendMessageReply) error {
+func (usr *UserProfile) SendMessageHandler(args *Message, reply *SendMessageReply) error {
+
+	// SenderEmail string, SenderName  string, MsgContent string
 	//validation
-	userName := args.UserLoginName
-	userPfl, ok := userProfileMap[userName]
+	userEmail := args.SenderEmail
+	_, ok := userProfileMap[userEmail]
 	if ok == true {
 		fmt.Println("SendMessage: success.")
-		reply.MsgStatus = true
-		userPfl.PostMsg = append(userPfl.PostMsg, args.Msg)
-		reply.UserLoginProfile = userPfl
+		reply.SendMsgStatus = true
+		msgMap, ok := userMsgMap[userEmail]
+		if ok == false {
+			//This user has never post msg before
+			userMsgMap[userEmail] = []Message{*args}
+		}
+		msgMap = append(msgMap, *args)
+
+		userMsgMap[userEmail] = msgMap
+
+		reply.SendMsgProfile = userProfileMap[userEmail] //!! re extract user profile
 		return nil
 	} else {
-		fmt.Println("SendMessage: userName does not exist, go to sign up.")
-		reply.MsgStatus = false
-		reply.UserLoginProfile = UserProfile{
-			UserId:   0,
-			UserName: "",
-			// Password:  "",
-			Following: []int{},
-			PostMsg:   []Message{}}
+		fmt.Println("SendMessage: userEmail does not exist, go to sign up.")
+		reply.SendMsgStatus = false
+		reply.SendMsgProfile = UserProfile{
+			UserEmail:    "",
+			UserId:       0,
+			UserName:     "",
+			UserBio:      "",
+			FollowingNum: 0,
+			FollowerNum:  0,
+		}
 		return nil
 	}
 	// Never come here
+	return nil
+}
+
+func (usr *UserProfile) GetUserMsgFromFollowingHandler(args *UserProfile, reply *[]Message) error {
+
+	// SenderEmail string, SenderName  string, MsgContent string
+	//validation
+	userEmail := args.UserEmail
+	currFollowingMap, ok := userFollowingMap[userEmail]
+	if ok == true {
+		// get Following UserEmail
+		fmt.Println("GetUserMsgFromFollowing: success.")
+		for _, v := range currFollowingMap {
+			// get Msg for Each UserEmail
+			msgArray, ok := userMsgMap[v]
+			if ok == true {
+				for _, msg := range msgArray {
+					*reply = append(*reply, msg)
+				}
+			} else {
+				//
+				fmt.Println("GetUserMsgFromFollowing: user has no msg post.")
+			}
+		}
+		return nil
+	} else {
+		fmt.Println("GetUserMsgFromFollowing: userEmail does not exist, go to sign up.")
+		reply = nil
+		return nil
+	}
 	return nil
 }
 

@@ -28,27 +28,37 @@ type PageVariables struct {
 	Time string
 }
 
+type HomePageArgs struct {
+	User             UserProfile
+	MsgFromFollowing []Message
+}
+
 type UserProfile struct {
-	UserId   int
-	UserName string
-	// Password  string
-	Following []int
-	PostMsg   []Message
+	UserEmail string
+	UserId    int
+	UserName  string
+	UserBio   string
+	// Following []int
+	// Follower  []int
+	// PostMsg   []Message
+	FollowingNum int
+	FollowerNum  int
 }
 
 type UserCredential struct {
-	UserId   int
-	Password string
+	UserEmail string
+	Password  string
 }
 
 type Message struct {
-	SenderId int
-	// timeStamp Time
-	Content string
+	SenderEmail string
+	SenderName  string
+	// MsgTimeStamp Time
+	MsgContent string
 }
 
 type LoginArgs struct {
-	UserLoginName, UserLoginPassword string
+	UserLoginEmail, UserLoginPassword string
 }
 
 type LoginReply struct {
@@ -56,14 +66,23 @@ type LoginReply struct {
 	UserLoginProfile UserProfile
 }
 
-type SendMessageArgs struct {
-	UserLoginName string
-	Msg           Message
+type SignUpArgs struct {
+	UserSignUpEmail, UserSignUpName, UserSignUpPassword string
 }
 
+type SignUpReply struct {
+	UserSignUpStatus  bool
+	UserSignUpProfile UserProfile
+}
+
+// type SendMessageArgs struct {
+// 	SendMsgEmail, SendMsgName string
+// 	Msg                       Message
+// }
+
 type SendMessageReply struct {
-	MsgStatus        bool
-	UserLoginProfile UserProfile
+	SendMsgStatus  bool
+	SendMsgProfile UserProfile
 }
 
 func init() {
@@ -81,11 +100,11 @@ func main() {
 	http.Handle("/resources/css/", http.StripPrefix("/resources/css/", http.FileServer(http.Dir("resources/css"))))
 
 	//root
-	http.HandleFunc("/", Index)
+	http.HandleFunc("/", indexHandler)
 	// log.Fatal(http.ListenAndServe(":8080", nil))
 
 	//Login
-	http.HandleFunc("/login", login)
+	http.HandleFunc("/login", loginHandler)
 
 	// signUpRedirect
 	http.HandleFunc("/signUpRedirect", signUpRedirect)
@@ -99,13 +118,16 @@ func main() {
 	//logout
 	http.HandleFunc("/logout", logout)
 
+	//searchUsers
+	http.HandleFunc("/searchUsers", searchUsersHandler)
+
 	err := http.ListenAndServe(":8080", nil) // setting listening port
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }
 
-func Index(w http.ResponseWriter, r *http.Request) {
+func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()              // find the time right now
 	HomePageVars := PageVariables{ //store the date and time in a struct
@@ -123,7 +145,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
+func loginHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Session: User is Logging in.")
 	fmt.Println("method:", r.Method) //get request method
 	if r.Method == "GET" {
@@ -138,7 +160,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		// 	}
 		// }
 		// logic part of log in
-		userName := r.FormValue("username")
+		userEmail := r.FormValue("useremail")
 		userPswd := r.FormValue("userpswd")
 		// fmt.Println("userName : ", userName)
 		// fmt.Println("password : ", password)
@@ -156,13 +178,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 		}
 		// Synchronous call
 		// RPC call for validation
-		loginArgs := LoginArgs{userName, userPswd}
+		loginArgs := LoginArgs{userEmail, userPswd}
 		var loginReply LoginReply
-		err = client.Call("UserProfile.UserLoginValidation", loginArgs, &loginReply)
+		err = client.Call("UserProfile.UserLoginHandler", loginArgs, &loginReply)
 		if err != nil {
 			log.Fatal("User Login error:", err)
 		}
-		fmt.Printf("User: %s, LoginStatus: %t\n", loginArgs.UserLoginName, loginReply.UserLoginStatus)
+		fmt.Printf("User: %s, LoginStatus: %t\n", loginArgs.UserLoginEmail, loginReply.UserLoginStatus)
 
 		if loginReply.UserLoginStatus == true {
 			// Set user as authenticated
@@ -180,16 +202,56 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 			session.Save(r, w)
 
-			tmpl, err := template.ParseFiles("templates/homepage.html") //parse the html file homepage.html
-			if err != nil {                                             // if there is an error
-				log.Print("template parsing error: ", err) // log it
-			}
+			// tmpl, err := template.ParseFiles("templates/homepage.html") //parse the html file homepage.html
+			// if err != nil {                                             // if there is an error
+			// 	log.Print("template parsing error: ", err) // log it
+			// }
 
-			tmpl.Execute(w, loginReply.UserLoginProfile)
+			// tmpl.Execute(w, loginReply.UserLoginProfile)
+			getHomePage(w, r, &loginReply.UserLoginProfile)
 		} else {
 			tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
 			tmpl.Execute(w, nil)
 			// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
+		}
+
+	}
+}
+
+func getHomePage(w http.ResponseWriter, r *http.Request, usr *UserProfile) {
+	fmt.Println("Session: Getting HomePage.")
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("login.gtpl")
+		t.Execute(w, nil)
+	} else {
+		tmpl, err := template.ParseFiles("templates/homepage.html") //parse the html file homepage.html
+		if err != nil {                                             // if there is an error
+			log.Print("template parsing error: ", err) // log it
+		}
+
+		// Start getting Msg
+		client, err := rpc.DialHTTP("tcp", serverAddress+":1234")
+		if err != nil {
+			log.Fatal("dialing:", err)
+		}
+		// Synchronous call
+		// RPC call
+
+		var getMsgReply []Message
+		err = client.Call("UserProfile.GetUserMsgFromFollowingHandler", usr, &getMsgReply)
+		if err != nil {
+			log.Fatal("User Login error:", err)
+		}
+
+		if getMsgReply == nil {
+			fmt.Println("GetUserMsgFromFollowing: Error, Redirect User to Sign Up.")
+			signUpRedirect(w, r)
+		} else {
+			hpArgs := HomePageArgs{
+				User:             *usr,
+				MsgFromFollowing: getMsgReply,
+			}
+			tmpl.Execute(w, hpArgs)
 		}
 
 	}
@@ -215,6 +277,7 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 	} else {
 		r.ParseForm()
 		// logic part of log in
+		userEmail := r.FormValue("useremail")
 		userName := r.FormValue("username")
 		userPswd := r.FormValue("userpswd")
 
@@ -224,29 +287,22 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 			log.Fatal("dialing:", err)
 		}
 		// Synchronous call
-		loginArgs := LoginArgs{userName, userPswd}
-		var loginReply LoginReply
-		err = client.Call("UserProfile.UserSignUpHandler", loginArgs, &loginReply)
+		signUpArgs := SignUpArgs{userEmail, userName, userPswd}
+		var signUpReply SignUpReply
+		err = client.Call("UserProfile.UserSignUpHandler", signUpArgs, &signUpReply)
 		if err != nil {
-			log.Fatal("User Login error:", err)
+			log.Fatal("User SignUp error:", err)
 		}
-		fmt.Printf("User: %s, SignUpStatus: %t\n", loginArgs.UserLoginName, loginReply.UserLoginStatus)
+		fmt.Printf("User: %s, SignUpStatus: %t\n", signUpArgs.UserSignUpName, signUpReply.UserSignUpStatus)
 
-		if loginReply.UserLoginStatus == false {
+		if signUpReply.UserSignUpStatus == false {
 			//userName already used!
 			tmpl := template.Must(template.ParseFiles("templates/signUp.html"))
 			tmpl.Execute(w, nil)
 		} else {
-			//login success
-			session, _ := store.Get(r, "cookie-name")
-			// Set user as authenticated
-			session.Values["authenticated"] = true
-			session.Values["currentUser"] = loginReply.UserLoginProfile
-
-			session.Save(r, w)
-
-			tmpl := template.Must(template.ParseFiles("templates/homepage.html"))
-			tmpl.Execute(w, loginReply.UserLoginProfile)
+			//signUp success
+			//Redirect to index
+			indexHandler(w, r)
 			// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
 		}
 
@@ -278,9 +334,9 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 		userPfl := session.Values["currentUser"].(*UserProfile)
 
 		newMsg := Message{
-			SenderId: userPfl.UserId,
-			// timeStamp: time.Now(),
-			Content: r.FormValue("message"),
+			SenderEmail: userPfl.UserEmail,
+			SenderName:  userPfl.UserName,
+			MsgContent:  r.FormValue("message"),
 		}
 		// fmt.Fprintf(w, "Message <div> <p>%s</p> </div> sent.\n", msg)
 		fmt.Println(newMsg)
@@ -291,18 +347,19 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 			log.Fatal("dialing:", err)
 		}
 		// Synchronous call
-		msgArgs := SendMessageArgs{userPfl.UserName, newMsg}
+		msgArgs := newMsg
 		var msgReply SendMessageReply
 		err = client.Call("UserProfile.SendMessageHandler", msgArgs, &msgReply)
 		if err != nil {
 			log.Fatal("Send Message error:", err)
 		}
-		fmt.Printf("User: %s, sendMessageStatus: %t\n", msgArgs.UserLoginName, msgReply.MsgStatus)
+		fmt.Printf("User: %s, sendMessageStatus: %t\n", msgArgs.SenderName, msgReply.SendMsgStatus)
 
 		//re-render the page
-		if msgReply.MsgStatus == true {
-			tmpl := template.Must(template.ParseFiles("templates/homepage.html"))
-			tmpl.Execute(w, msgReply.UserLoginProfile)
+		if msgReply.SendMsgStatus == true {
+			// tmpl := template.Must(template.ParseFiles("templates/homepage.html"))
+			// tmpl.Execute(w, msgReply.SendMsgProfile)
+			getHomePage(w, r, userPfl)
 		} else {
 			fmt.Println("SendMessage: userName does not exist, go to sign up.")
 			logout(w, r)
@@ -311,6 +368,8 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 		// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
 	}
 }
+
+// searchUsersHandler
 
 func logout(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Session: User is logging out.")
@@ -321,5 +380,5 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	session.Save(r, w)
 
 	//Redirect to index
-	Index(w, r)
+	indexHandler(w, r)
 }

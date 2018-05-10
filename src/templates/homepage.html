@@ -7,42 +7,61 @@
 </head>
 
 <body>
-    <div class="topnav" id="myTopnav">
-        <a href="#home" class="active">Home</a>
-        <a href="#news">News</a>
-        <a href="#contact">Contact</a>
-        <a href="#about">About</a>
-        <!-- <a href="javascript:void(0);" class="icon" onclick="myFunction()">&#9776;</a> -->
-        <!-- The link with class="icon" is used to open and close the topnav on small screens. -->
-    </div>
     <h1>Raven<h1>
 
-    <h2>Welcome, {{.UserName}}</h2>
-    <form action="/logout" method="post">
+    <h2>Welcome, {{.User.UserName}}</h2>
+
+    <div class="logoutButton">
+        <form action="/logout" method="post">
                 <input type="submit" value="Logout">
-    </form>
-    <div>
+        </form>   
+    </div>
+
+    <div class="searchBox">
+            <form action="/searchUsers" method="post">
+                <input type="search" name="searchkeyword" placeholder="Find your new friends, or enemies here." size="50" maxlength="40" required>
+                <input type="submit" value="Search">
+            </form>
+    </div>
+
+    <div class="profileBox">
         <h2>Profile</h2>
-        <p>UserName: {{.UserName}}</p>
-        <p>UserId: {{.UserId}}</p>
-        <div>
-            <p>"Grand Maester Pycelle... send a raven to Casterly Rock."</p>
+        <p>UserName: {{.User.UserName}}</p>
+        <p>UserId: {{.User.UserId}}</p>
+        <p>UserBio: {{.User.UserBio}}</p>
+        <p>Following: {{.User.FollowingNum}}</p>
+        <p>Follower: {{.User.FollowerNum}}</p>
+    </div>
+
+    <div class="sendMessageBox">
             <form action="/sendMessage" method="post">
-                <input type="text" name="message" width="500" height="200" placeholder="Write your message here." maxlength="140">
+                <input type="text" name="message" placeholder="Write Your Message Here." size="100" required>
                 <input type="submit" value="Send">
             </form>
-        </div>
-        <p>Messages recieved:</p>
-        <ul>
-            {{range $index, $msg :=.PostMsg}}
-            <li>{{$msg}}</li>
-            {{end}}
-            <!-- {{range $index, $element := .}}{{$index}}
-{{range $element}}{{.Value}}
-{{end}}
-{{end}} -->
-        </ul>
     </div>
+
+     <div class="messageBox">
+        <p>Messages recieved:</p>
+            {{range $index, $msg := .MsgFromFollowing}}
+            <li>
+                <div class="messageContainer">
+                From {{$msg.SenderName}} : <br> {{$msg.MsgContent}}
+                </div>
+            </li>
+            {{end}}
+            
+            <!-- {{range $index, $element := .}}{{$index}}
+                {{range $element}}{{.Value}}
+                {{end}}
+            {{end}} -->
+    </div>
+
+    <div class="deleteAccountButton">
+        <form action="/deleteAccount" method="post">
+                <input type="submit" value="Delete My Account">
+        </form>   
+    </div>
+
 </body>
 
 </html>

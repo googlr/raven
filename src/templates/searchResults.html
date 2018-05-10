@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="/resources/css/index.css">
+    <title></title>
+</head>
+
+<body>
+    <h1>Raven<h1>
+
+    <div class="homeButton">
+        <form action="/home" method="post">
+                <input type="submit" value="Home">
+        </form>
+    </div>
+
+    <div class="logoutButton">
+        <form action="/logout" method="post">
+                <input type="submit" value="Logout">
+        </form>   
+    </div>
+
+    <div class="searchBox">
+            <form action="/searchUsers" method="post">
+                <input type="text" name="searchkeyword" placeholder="Find your new friends, or enemies here." maxlength="40">
+                <input type="submit" value="Search">
+            </form>
+    </div>
+
+    <!-- <div class="userDisplayBox">
+        {{range $index, $msg :=.PostMsg}}
+            <li>{{$msg}}</li>
+            {{end}}
+    </div> -->
+
+
+    <!-- <div class="followUnfollowButton">
+            <form action="/followUnfollowUsers" method="post">
+                <input type="submit" value="Follow/Unfollow">
+            </form>
+    </div> -->
+
+</body>
+
+</html>

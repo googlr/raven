@@ -4,30 +4,31 @@
 <head>
     <link rel="stylesheet" type="text/css" href="/resources/css/index.css">
     <title>Raven</title>
-    <style>
-    h1 {
-        text-align: center;
-        /*color: green;*/
-        padding: 14px 16px;
-        text-decoration: none;
-    }
-    </style>
 </head>
 
 <body>
     <h1>Raven</h1>
     <p>The distributed online news and social networking service on the continent of Westeros.</p>
-    <!-- <h2>To say, or not to say, that is the question:</h2> -->
-    <form action="/login" method="post">
-        <label>Username:</label><br />
-        <input type="text" name="username" value="Jon Snow"><br />
-        <label>Password:</label><br />
-        <input type="password" name="userpswd" value="qwerty"><br />
-        <input type="submit" value="Login"><br />
-    </form>
+    <div class="loginBox">
+        <form action="/login" method="post">
+            <label>UserEmail:</label>
+            <br />
+            <input type="text" name="useremail" value="Jon.Snow@Winterfell.com">
+            <br />
+            <label>Password:</label>
+            <br />
+            <input type="password" name="userpswd" value="qwerty">
+            <br />
+            <input type="submit" value="Login">
+            <br />
+        </form>
+    </div>
+    
     <form action="/signUpRedirect" method="post">
-        <label>New to Westeros? Sign up below:</label><br />
-        <input type="submit" value="SignUp"><br />
+        <label>New to Westeros? Sign up below:</label>
+        <br />
+        <input type="submit" value="SignUp">
+        <br />
     </form>
     <p>Today is {{.Date}}</p>
     <p>And the time is {{.Time}}</p>
