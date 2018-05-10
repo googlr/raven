@@ -13,6 +13,7 @@
   
 ## Questions
   - Password parsing: `<input type="password" name="userpswd" value="qwerty"><br />`. I changed the `name="password"` to `name="userpswd"`, then `r.FormValue("userpswd")` is not longer empty. To be answered.
+  - [iterating-through-map-in-template](https://stackoverflow.com/questions/21302520/iterating-through-map-in-template)
   
 ## Reference
   1. Session: [github.com/gorilla/sessions](http://www.gorillatoolkit.org/pkg/sessions)
