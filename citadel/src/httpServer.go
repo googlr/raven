@@ -4,10 +4,17 @@ import (
 	// "errors"
 	"encoding/gob"
 	"fmt"
+	"log"
 	"net/http"
 	"net/rpc"
 	"strings"
 	"unicode"
+)
+
+var (
+	// back end server address
+	serverAddress string = "localhost:"
+	port          string = "9527"
 )
 
 type PageVariables struct {
@@ -25,7 +32,7 @@ type GetProfilePageArgs struct {
 }
 
 type GetProfilePageReply struct {
-	isFollowing bool
+	IsFollowing bool
 	User        UserProfile
 }
 
@@ -420,6 +427,10 @@ func (usr *UserProfile) UserSignUpHandler(args *SignUpArgs, reply *SignUpReply) 
 		userCredentialMap[userEmail] = signUpUserCredential
 
 		reply.UserSignUpProfile = signUpUserProfile
+
+		//add Log
+		// log := "Inset new user:"
+		// addLog(&log)
 		return nil
 	}
 
@@ -428,7 +439,6 @@ func (usr *UserProfile) UserSignUpHandler(args *SignUpArgs, reply *SignUpReply) 
 }
 
 func (usr *UserProfile) SendMessageHandler(args *Message, reply *SendMessageReply) error {
-
 	// SenderEmail string, SenderName  string, MsgContent string
 	//validation
 	userEmail := args.SenderEmail
@@ -538,24 +548,43 @@ func (usr *UserProfile) GetUserProfileHandler(args *GetProfilePageArgs, reply *G
 		if ok2 == true {
 			//current user has followed the user
 			fmt.Println("Current user is following the user.")
-			reply.isFollowing = true
+			reply.IsFollowing = true
 			reply.User = userProfileMap[userEmail]
 			fmt.Println(reply)
 			return nil
 		} else {
 			//current user has not followed the user
 			fmt.Println("Current user has not followed the user.")
-			reply.isFollowing = false
+			reply.IsFollowing = false
 			reply.User = userProfileMap[userEmail]
 		}
 
 	} else {
 		// current user has never followed anyone, is empty in following map
 		fmt.Println("Current user has not followed anyone.")
-		reply.isFollowing = false
+		reply.IsFollowing = false
 		reply.User = userProfileMap[userEmail]
 	}
 	return nil
+}
+
+func addLog(args *string) {
+	client, err := rpc.DialHTTP("tcp", serverAddress+port)
+	if err != nil {
+		log.Fatal("dialing:", err)
+	}
+	// Synchronous call
+	// RPC call
+	var logReply bool
+	err = client.Call("UserProfile.AddLogHandler", args, &logReply)
+	if err != nil {
+		log.Fatal("User Login error:", err)
+	}
+	if logReply == true {
+		fmt.Println("addLog: success.")
+	} else {
+		fmt.Println("addLog: failed.")
+	}
 }
 
 func main() {

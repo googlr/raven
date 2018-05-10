@@ -31,7 +31,7 @@
     </div>
 
     <div class="followUnfollowButton">
-        {{if (.isFollowing) }}
+        {{if (.IsFollowing) }}
             <form action="/followUsers" method="post">
                 <input type="submit" value="Unfollow">
             </form>

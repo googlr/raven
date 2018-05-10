@@ -38,7 +38,7 @@ type GetProfilePageArgs struct {
 }
 
 type GetProfilePageReply struct {
-	isFollowing bool
+	IsFollowing bool
 	User        UserProfile
 }
 
@@ -132,6 +132,9 @@ func main() {
 
 	// getUserProfile
 	http.HandleFunc("/getUserProfile", getUserProfileHandler)
+
+	// getHomePage
+	http.HandleFunc("/home", backToHomePageHandler)
 
 	err := http.ListenAndServe(":8080", nil) // setting listening port
 	if err != nil {
@@ -488,13 +491,39 @@ func getUserProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Println(pfReply)
 
-		if pfReply.isFollowing == true {
+		if pfReply.IsFollowing == true {
 			fmt.Printf("%s is Following the user", currentUserProfl.UserName)
 		} else {
 			fmt.Printf("%s has not yet followed the user", currentUserProfl.UserName)
 		}
 
 		tmpl.Execute(w, pfReply)
+	}
+}
+
+func backToHomePageHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "cookie-name")
+
+	// Check if user is authenticated
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	fmt.Println("Session: User is going back to HomePage.")
+	fmt.Println("method:", r.Method) //get request method
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("login.gtpl")
+		t.Execute(w, nil)
+	} else {
+
+		if userPfl, ok := session.Values["currentUser"].(*UserProfile); !ok || userPfl == nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		currentUserProfl := session.Values["currentUser"].(*UserProfile)
+		getHomePage(w, r, currentUserProfl)
 	}
 }
 
