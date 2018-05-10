@@ -28,11 +28,21 @@
             </form>
     </div>
 
-    <!-- <div class="userDisplayBox">
-        {{range $index, $msg :=.PostMsg}}
-            <li>{{$msg}}</li>
+    <div class="userDisplayBox">
+            {{range $index, $usr := .}}
+            <div class="userContainer">
+                UserName: {{$usr.UserName}} <br> 
+                UserBio: {{$usr.UserBio}} <br> 
+                FollowingNum: {{$usr.FollowingNum}} <br> 
+                FollowerNum: {{$usr.FollowerNum}}
+                <form action="/getUserProfile" method="post">
+                    <input type="hidden" name="userEmail" value={{$usr.UserEmail}}>
+                    <input type="submit" value="Learn More">
+                </form>
+            </div>
             {{end}}
-    </div> -->
+
+    </div>
 
 
     <!-- <div class="followUnfollowButton">

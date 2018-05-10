@@ -14,7 +14,7 @@
     <div class="logoutButton">
         <form action="/logout" method="post">
                 <input type="submit" value="Logout">
-        </form>   
+        </form>
     </div>
 
     <div class="searchBox">
@@ -43,11 +43,9 @@
      <div class="messageBox">
         <p>Messages recieved:</p>
             {{range $index, $msg := .MsgFromFollowing}}
-            <li>
                 <div class="messageContainer">
                 From {{$msg.SenderName}} : <br> {{$msg.MsgContent}}
                 </div>
-            </li>
             {{end}}
             
             <!-- {{range $index, $element := .}}{{$index}}

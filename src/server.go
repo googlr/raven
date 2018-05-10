@@ -33,6 +33,15 @@ type HomePageArgs struct {
 	MsgFromFollowing []Message
 }
 
+type GetProfilePageArgs struct {
+	User, CurrentUser string
+}
+
+type GetProfilePageReply struct {
+	isFollowing bool
+	User        UserProfile
+}
+
 type UserProfile struct {
 	UserEmail string
 	UserId    int
@@ -120,6 +129,9 @@ func main() {
 
 	//searchUsers
 	http.HandleFunc("/searchUsers", searchUsersHandler)
+
+	// getUserProfile
+	http.HandleFunc("/getUserProfile", getUserProfileHandler)
 
 	err := http.ListenAndServe(":8080", nil) // setting listening port
 	if err != nil {
@@ -369,7 +381,122 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// searchUsersHandler
+func searchUsersHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "cookie-name")
+
+	// Check if user is authenticated
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	fmt.Println("Session: User is Searching Users.")
+	fmt.Println("method:", r.Method) //get request method
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("login.gtpl")
+		t.Execute(w, nil)
+	} else {
+		r.ParseForm()
+
+		if userPfl, ok := session.Values["currentUser"].(*UserProfile); !ok || userPfl == nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// userPfl := session.Values["currentUser"].(*UserProfile)
+
+		searchKeyword := r.FormValue("searchkeyword")
+
+		// searchResults RPCs
+		client, err := rpc.DialHTTP("tcp", serverAddress+":1234")
+		if err != nil {
+			log.Fatal("dialing:", err)
+		}
+		// Synchronous call
+		searchArgs := searchKeyword
+		var searchReply []UserProfile
+		err = client.Call("UserProfile.GetSearchResultsHandler", searchArgs, &searchReply)
+		if err != nil {
+			log.Fatal("Search Users error:", err)
+		}
+		// fmt.Printf("User: %s, sendMessageStatus: %t\n", msgArgs.SenderName, msgReply.SendMsgStatus)
+
+		//re-render the page
+		// if searchReply != nil {
+		tmpl, err := template.ParseFiles("templates/searchResults.html") //parse the html file homepage.html
+		if err != nil {                                                  // if there is an error
+			log.Print("template parsing error: ", err) // log it
+		}
+
+		tmpl.Execute(w, searchReply)
+		// } else {
+		// 	fmt.Println("SendMessage: userName does not exist, go to sign up.")
+		// 	logout(w, r)
+		// }
+
+		// fmt.Fprintf(w, "Sorry, %s. Sign Up and Join us today.\n", userName[0])
+	}
+}
+
+func getUserProfileHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, "cookie-name")
+
+	// Check if user is authenticated
+	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	fmt.Println("Session: User is Getting Users Profile.")
+	fmt.Println("method:", r.Method) //get request method
+	if r.Method == "GET" {
+		t, _ := template.ParseFiles("login.gtpl")
+		t.Execute(w, nil)
+	} else {
+		r.ParseForm()
+
+		if userPfl, ok := session.Values["currentUser"].(*UserProfile); !ok || userPfl == nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		currentUserProfl := session.Values["currentUser"].(*UserProfile)
+		currentUserEmail := currentUserProfl.UserEmail
+
+		userEmail := r.FormValue("userEmail")
+
+		// getUserProfile RPCs
+		client, err := rpc.DialHTTP("tcp", serverAddress+":1234")
+		if err != nil {
+			log.Fatal("dialing:", err)
+		}
+		// Synchronous call
+		getUserProfileArgs := GetProfilePageArgs{
+			userEmail,
+			currentUserEmail,
+		}
+		var pfReply GetProfilePageReply
+		err = client.Call("UserProfile.GetUserProfileHandler", getUserProfileArgs, &pfReply)
+		if err != nil {
+			log.Fatal("Get User Profile error:", err)
+		}
+
+		tmpl, err := template.ParseFiles("templates/profilePage.html") //parse the html file homepage.html
+		if err != nil {                                                // if there is an error
+			log.Print("template parsing error: ", err) // log it
+		}
+
+		fmt.Println(pfReply)
+
+		if pfReply.isFollowing == true {
+			fmt.Printf("%s is Following the user", currentUserProfl.UserName)
+		} else {
+			fmt.Printf("%s has not yet followed the user", currentUserProfl.UserName)
+		}
+
+		tmpl.Execute(w, pfReply)
+	}
+}
 
 func logout(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Session: User is logging out.")

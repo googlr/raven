@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/rpc"
+	"strings"
+	"unicode"
 )
 
 type PageVariables struct {
@@ -16,6 +18,15 @@ type PageVariables struct {
 type HomePageArgs struct {
 	User             UserProfile
 	MsgFromFollowing []Message
+}
+
+type GetProfilePageArgs struct {
+	User, CurrentUser string
+}
+
+type GetProfilePageReply struct {
+	isFollowing bool
+	User        UserProfile
 }
 
 type UserProfile struct {
@@ -479,6 +490,70 @@ func (usr *UserProfile) GetUserMsgFromFollowingHandler(args *UserProfile, reply 
 		fmt.Println("GetUserMsgFromFollowing: userEmail does not exist, go to sign up.")
 		reply = nil
 		return nil
+	}
+	return nil
+}
+
+func (usr *UserProfile) GetSearchResultsHandler(args *string, reply *[]UserProfile) error {
+	// Make a Regex to say we only want
+	// reg, err := regexp.Compile("[^a-zA-Z0-9]+")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// searchKeyword := reg.ReplaceAllString((*args), "")
+
+	searchKeyword := strings.ToLower(
+		strings.TrimFunc((*args), func(r rune) bool {
+			return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+		}))
+
+	// search the userProfileMap
+	fmt.Printf("GetSearchResults: searching %s.\n", searchKeyword)
+	for _, v := range userProfileMap {
+		userNameLower := strings.ToLower(
+			strings.TrimFunc(v.UserName, func(r rune) bool {
+				return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+			}))
+		// fmt.Printf("GetSearchResults: matching %s.\n", userNameLower)
+		if strings.Contains(userNameLower, searchKeyword) {
+			*reply = append(*reply, v)
+		}
+
+	}
+
+	fmt.Println("GetSearchResults: success.")
+	return nil
+}
+
+func (usr *UserProfile) GetUserProfileHandler(args *GetProfilePageArgs, reply *GetProfilePageReply) error {
+	fmt.Println("Getting User Profile.")
+	userEmail := (*args).User
+	currUserEmail := (*args).CurrentUser
+	fmt.Println(userEmail)
+	fmt.Println(currUserEmail)
+
+	currFollowingMap, ok := userFollowingMap[currUserEmail]
+	if ok == true {
+		_, ok2 := currFollowingMap[userEmail]
+		if ok2 == true {
+			//current user has followed the user
+			fmt.Println("Current user is following the user.")
+			reply.isFollowing = true
+			reply.User = userProfileMap[userEmail]
+			fmt.Println(reply)
+			return nil
+		} else {
+			//current user has not followed the user
+			fmt.Println("Current user has not followed the user.")
+			reply.isFollowing = false
+			reply.User = userProfileMap[userEmail]
+		}
+
+	} else {
+		// current user has never followed anyone, is empty in following map
+		fmt.Println("Current user has not followed anyone.")
+		reply.isFollowing = false
+		reply.User = userProfileMap[userEmail]
 	}
 	return nil
 }

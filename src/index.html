@@ -8,15 +8,13 @@
 
 <body>
     <h1>Raven</h1>
-    <p>The distributed online news and social networking service on the continent of Westeros.</p>
+    <h2>The distributed online news and social networking service on the continent of Westeros.</h2>
     <div class="loginBox">
         <form action="/login" method="post">
             <label>UserEmail:</label>
-            <br />
             <input type="text" name="useremail" value="Jon.Snow@Winterfell.com">
             <br />
             <label>Password:</label>
-            <br />
             <input type="password" name="userpswd" value="qwerty">
             <br />
             <input type="submit" value="Login">
@@ -24,12 +22,16 @@
         </form>
     </div>
     
-    <form action="/signUpRedirect" method="post">
+    <div>
+        <form action="/signUpRedirect" method="post">
         <label>New to Westeros? Sign up below:</label>
         <br />
         <input type="submit" value="SignUp">
         <br />
     </form>
+        
+    </div>
+
     <p>Today is {{.Date}}</p>
     <p>And the time is {{.Time}}</p>
 </body>

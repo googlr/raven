@@ -23,20 +23,26 @@
 
     <div class="profileBox">
         <h2>Profile</h2>
-        <p>UserName: {{.UserName}}</p>
-        <p>UserId: {{.UserId}}</p>
-        <p>UserBio: {{.UserBio}}</p>
-        <p>Following: {{.FollowingNum}}</p>
-        <p>Follower: {{.FollowerNum}}</p>
+        <p>UserName: {{.User.UserName}}</p>
+        <p>UserId: {{.User.UserId}}</p>
+        <p>UserBio: {{.User.UserBio}}</p>
+        <p>Following: {{.User.FollowingNum}}</p>
+        <p>Follower: {{.User.FollowerNum}}</p>
     </div>
 
     <div class="followUnfollowButton">
-            <form action="/followUnfollowUsers" method="post">
-                <input type="submit" value="Follow/Unfollow">
+        {{if (.isFollowing) }}
+            <form action="/followUsers" method="post">
+                <input type="submit" value="Unfollow">
             </form>
+        {{else}}
+            <form action="/UnfollowUsers" method="post">
+                <input type="submit" value="Follow">
+            </form>
+        {{end}}
     </div>
 
-    <div class="messageBox">
+    <!-- <div class="messageBox">
         <p>Messages recieved:</p>
         <ul>
             {{range $index, $msg :=.PostMsg}}
@@ -48,7 +54,7 @@
                 {{end}}
             {{end}}
         </ul> 
-    </div>
+    </div> -->
 </body>
 
 </html>
